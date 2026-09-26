@@ -21,7 +21,7 @@ STATS:
     DAY:
       TEXT:
         SHOW: True
-        FORMAT: "EEEE, dd/MM/yyyy"
+        FORMAT: "EEE, d MMM yyyy"
         X: 236
         Y: 31
         WIDTH: 230

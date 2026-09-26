@@ -1,21 +1,27 @@
 #!/usr/bin/env bash
-# Cấu hình một lần (cần quyền root) cho màn hình 3.5" gắn trên iGam3 M1 (Turing Smart Screen, USB 1a86:5722).
-# Chạy:  sudo ~/igam3-screen/setup-root.sh        (chạy lại nhiều lần cũng không sao)
+# One-time setup (needs root) for the 3.5" screen built into the iGam3 M1 (Turing Smart Screen, USB 1a86:5722).
+# Run:  sudo ~/igam3-screen/setup-root.sh [--lang vi|en]     (running it again is harmless)
 set -euo pipefail
 
+case "${LANGUAGE:-${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}}" in vi*) VI=1 ;; *) VI=0 ;; esac
+if [[ "${1:-}" == "--lang" ]]; then [[ "${2:-}" == "vi" ]] && VI=1 || VI=0; fi
+t() { if (( VI )); then printf '%s' "$1"; else printf '%s' "$2"; fi; }  # t "Tiếng Việt" "English"
+
 if [[ $EUID -ne 0 ]]; then
-    echo "Cần chạy bằng sudo:  sudo $0" >&2
+    echo "$(t "Cần chạy bằng sudo:" "Run it with sudo:")  sudo $0" >&2
     exit 1
 fi
 TARGET_USER="${SUDO_USER:-}"
 if [[ -z "$TARGET_USER" || "$TARGET_USER" == "root" ]]; then
-    echo "Hãy chạy bằng sudo từ tài khoản người dùng thường (không đăng nhập root)." >&2
+    echo "$(t "Hãy chạy bằng sudo từ tài khoản người dùng thường (không đăng nhập root)." \
+              "Run it with sudo from a normal user account (not logged in as root).")" >&2
     exit 1
 fi
 
 RULE=/etc/udev/rules.d/60-igam3-screen.rules
 
-echo "[1/5] Quy tắc udev: cho phép người dùng mở màn hình, ModemManager bỏ qua thiết bị này"
+echo "[1/5] $(t "Quy tắc udev: cho phép người dùng mở màn hình, ModemManager bỏ qua thiết bị này" \
+                "udev rule: the user may open the screen, ModemManager leaves it alone")"
 cat > "$RULE" <<'EOF'
 # iGam3 M1 built-in screen: Turing Smart Screen 3.5" (TURZX "UsbMonitor", USB 1a86:5722)
 # - GROUP dialout + uaccess: the logged-in user and the igam3-screen service can open the serial port
@@ -31,27 +37,34 @@ for dev in /dev/ttyACM*; do
 done
 udevadm settle
 
-echo "[2/5] Thêm $TARGET_USER vào nhóm dialout (có hiệu lực đầy đủ sau khi khởi động lại máy)"
+echo "[2/5] $(t "Thêm $TARGET_USER vào nhóm dialout (có hiệu lực đầy đủ sau khi khởi động lại máy)" \
+                "Adding $TARGET_USER to the dialout group (fully effective after a restart)")"
 usermod -aG dialout "$TARGET_USER"
 
-echo "[3/5] Cho dịch vụ của $TARGET_USER tự chạy lúc khởi động, kể cả khi chưa đăng nhập"
+echo "[3/5] $(t "Cho dịch vụ của $TARGET_USER tự chạy lúc khởi động, kể cả khi chưa đăng nhập" \
+                "Letting the services of $TARGET_USER start at boot, even before anyone logs in")"
 loginctl enable-linger "$TARGET_USER"
 
-echo "[4/5] Cài python3-tk cho giao diện cấu hình (igam3-screen config)"
+echo "[4/5] $(t "Cài python3-tk cho giao diện cấu hình (igam3-screen config)" \
+                "Installing python3-tk for the configuration window (igam3-screen config)")"
 if ! apt-get install -y python3-tk; then
-    echo "  -> Không cài được python3-tk (không bắt buộc, màn hình vẫn chạy bình thường)."
+    echo "  -> $(t "Không cài được python3-tk (không bắt buộc, màn hình vẫn chạy bình thường)." \
+                   "python3-tk could not be installed (optional, the screen works without it).")"
 fi
 
-echo "[5/5] Chế độ Dòng lệnh: cho phép đọc màn hình dòng lệnh tty3 (nhóm tty)"
+echo "[5/5] $(t "Chế độ Dòng lệnh: cho phép đọc màn hình dòng lệnh tty3 (nhóm tty)" \
+                "Console mode: read access to the text console tty3 (tty group)")"
 usermod -aG tty "$TARGET_USER"
 # Group membership reaches the service after a reboot; this ACL gives the same read access right away
 setfacl -m "u:$TARGET_USER:r" /dev/vcsa3 /dev/vcsu3 || true
 
 echo
-echo "Bật màn hình chính..."
+echo "$(t "Bật màn hình chính..." "Starting the main screen...")"
 if systemctl --user --machine="$TARGET_USER@" enable --now igam3-screen.service; then
-    echo "Xong! Màn hình trên máy sẽ hiện màn hình chính sau khoảng 10 giây."
+    echo "$(t "Xong! Màn hình trên máy sẽ hiện màn hình chính sau khoảng 10 giây." \
+              "Done! The small screen shows the main screen in about 10 seconds.")"
 else
-    echo "Chưa bật được dịch vụ. Chạy thử bằng tài khoản thường:  igam3-screen enable"
+    echo "$(t "Chưa bật được dịch vụ. Chạy thử bằng tài khoản thường:" \
+              "The service did not start. Try as the normal user:")  igam3-screen enable"
 fi
 ls -l /dev/igam3-screen 2>/dev/null || true

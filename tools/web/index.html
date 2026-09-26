@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -52,7 +52,11 @@
   label.field { display: block; margin: 10px 0 4px; color: var(--sub); font-size: 13px; }
   input[type=text], input[type=password], select { width: 100%; background: var(--card2); color: var(--text); border: 1px solid var(--border);
             border-radius: 10px; padding: 10px 12px; font: inherit; }
-  input[type=file] { width: 100%; color: var(--sub); font-size: 13px; }
+  .picker { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; position: relative; }
+  .picker input[type=file] { position: absolute; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; }
+  .picker label.btn { display: inline-block; }
+  .picker input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .fname { color: var(--sub); font-size: 13px; word-break: break-all; }
   input[type=range] { width: 100%; accent-color: var(--accent); }
   .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .btn { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 10px; padding: 10px 14px; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
@@ -66,112 +70,122 @@
            display: none; white-space: pre-line; font-size: 14px; z-index: 10; }
   #toast.err { border-color: #7f1d1d; color: #fecaca; }
   body.busy .btn, body.busy .seg button { pointer-events: none; opacity: .6; }
+  .head-right { display: flex; align-items: center; gap: 8px; }
+  select.compact { width: auto; padding: 5px 10px; font-size: 13px; border-radius: 999px; color: var(--sub); }
 </style>
 </head>
 <body>
 <header>
-  <h1>iGam3 Screen <small id="subtitle">Màn hình 3.5" của máy iGam3</small></h1>
-  <span id="status" class="pill">Đang tải…</span>
+  <h1>iGam3 Screen <small id="subtitle" data-t="subtitle"></small></h1>
+  <div class="head-right">
+    <select id="language" class="compact" aria-label="Language / Ngôn ngữ">
+      <option value="auto" data-t="langAuto"></option>
+      <option value="vi">Tiếng Việt</option>
+      <option value="en">English</option>
+    </select>
+    <span id="status" class="pill" data-t="loading"></span>
+  </div>
 </header>
 
 <main>
   <section class="card">
-    <h2>Màn hình nhỏ lúc này</h2>
+    <h2 data-t="nowTitle"></h2>
     <div id="preview" class="preview">
-      <img id="previewImg" src="/screen.png" alt="Hình đang hiện trên màn 3.5 inch">
-      <div class="veil" id="veil">Màn hình đang tắt</div>
+      <img id="previewImg" src="/screen.png" data-t-alt="previewAlt">
+      <div class="veil" id="veil" data-t="screenOff"></div>
     </div>
     <div class="row" style="margin-top:8px">
-      <span>Bật màn hình</span>
-      <label class="switch"><input type="checkbox" id="power" aria-label="Bật màn hình"><span></span></label>
+      <span data-t="power"></span>
+      <label class="switch"><input type="checkbox" id="power" data-t-label="power"><span></span></label>
     </div>
     <div class="row">
-      <span>Tự bật khi khởi động máy</span>
-      <label class="switch"><input type="checkbox" id="autostart" aria-label="Tự bật khi khởi động máy"><span></span></label>
+      <span data-t="autostart"></span>
+      <label class="switch"><input type="checkbox" id="autostart" data-t-label="autostart"><span></span></label>
     </div>
   </section>
 
   <section class="card">
-    <h2>Màn hình chính</h2>
-    <div class="seg" role="group" aria-label="Chọn màn hình chính">
-      <button data-mode="stats">Thông số</button>
-      <button data-mode="image">Ảnh</button>
-      <button data-mode="console">Dòng lệnh</button>
-      <button data-mode="qr">Mã QR</button>
+    <h2 data-t="mainTitle"></h2>
+    <div class="seg" role="group" data-t-label="modeGroup">
+      <button data-mode="stats" data-t="modeStats"></button>
+      <button data-mode="image" data-t="modeImage"></button>
+      <button data-mode="console" data-t="modeConsole"></button>
+      <button data-mode="qr" data-t="modeQr"></button>
     </div>
     <p class="hint" id="modeHint"></p>
-    <p class="hint warn" id="consoleWarn" hidden>Chưa có quyền đọc dòng lệnh. Chạy một lần trong Terminal:
-      <code>sudo ~/igam3-screen/setup-root.sh</code> rồi khởi động lại máy.</p>
+    <p class="hint warn" id="consoleWarn" hidden></p>
 
-    <h3>Hiển thị</h3>
-    <label class="field" for="brightness">Độ sáng: <b id="brightnessValue"></b>%</label>
+    <h3 data-t="display"></h3>
+    <label class="field" for="brightness"><span data-t="brightness"></span>: <b id="brightnessValue"></b>%</label>
     <input type="range" id="brightness" min="0" max="100" step="5">
     <div class="row">
-      <span>Xoay 180°</span>
-      <label class="switch"><input type="checkbox" id="rotate" aria-label="Xoay 180 độ"><span></span></label>
+      <span data-t="rotate"></span>
+      <label class="switch"><input type="checkbox" id="rotate" data-t-label="rotateLabel"><span></span></label>
     </div>
-    <label class="field" for="theme">Theme bảng thông số</label>
+    <label class="field" for="theme" data-t="themeLabel"></label>
     <div style="display:flex;gap:8px">
       <select id="theme"></select>
-      <button class="btn ghost" id="applyTheme">Áp dụng</button>
+      <button class="btn ghost" id="applyTheme" data-t="apply"></button>
     </div>
   </section>
 
   <section class="card span2">
-    <h2>Bảng thông số</h2>
-    <p class="hint warn" id="themeWarn" hidden>Các tuỳ chỉnh dưới đây dành cho theme iGam3.
-      <button class="btn ghost" id="useIgam3" style="margin-left:6px">Dùng theme iGam3</button></p>
-    <h3>Các khối</h3>
+    <h2 data-t="dashTitle"></h2>
+    <p class="hint warn" id="themeWarn" hidden><span data-t="themeWarn"></span>
+      <button class="btn ghost" id="useIgam3" style="margin-left:6px" data-t="useIgam3"></button></p>
+    <h3 data-t="blocks"></h3>
     <div class="grid" id="blocks"></div>
-    <h3>Tiêu đề</h3>
+    <h3 data-t="titleHead"></h3>
     <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
-      <div><label class="field" for="title">Chữ lớn (góc trên trái)</label><input type="text" id="title" maxlength="60"></div>
-      <div><label class="field" for="tag">Nhãn bên cạnh (để trống = không có)</label><input type="text" id="tag" maxlength="30"></div>
+      <div><label class="field" for="title" data-t="bigText"></label><input type="text" id="title" maxlength="60"></div>
+      <div><label class="field" for="tag" data-t="tagText"></label><input type="text" id="tag" maxlength="30"></div>
     </div>
-    <div class="actions"><button class="btn" id="saveTitle">Lưu tiêu đề</button></div>
-    <h3>Ảnh nền</h3>
-    <input type="file" id="bgFile" accept="image/*">
+    <div class="actions"><button class="btn" id="saveTitle" data-t="saveTitle"></button></div>
+    <h3 data-t="bgHead"></h3>
+    <div class="picker"><input type="file" id="bgFile" accept="image/*"><label class="btn ghost" for="bgFile" data-t="choose"></label><span class="fname" data-t="noFile"></span></div>
     <div class="actions">
-      <button class="btn" id="setBg">Đặt làm ảnh nền</button>
-      <button class="btn ghost" id="removeBg">Bỏ ảnh nền</button>
+      <button class="btn" id="setBg" data-t="setBg"></button>
+      <button class="btn ghost" id="removeBg" data-t="removeBg"></button>
     </div>
     <p class="hint" id="bgHint"></p>
   </section>
 
   <section class="card">
-    <h2>Ảnh của anh</h2>
-    <input type="file" id="imageFile" accept="image/*">
-    <label class="check"><input type="checkbox" id="fill"> Phóng phủ kín màn hình (cắt bớt mép)</label>
-    <div class="actions"><button class="btn" id="keepImage">Dùng làm màn hình chính</button></div>
-    <p class="hint">PNG, JPG hoặc GIF động. Mỗi lần vẽ kín màn mất khoảng 2 giây, nên GIF chạy chậm.</p>
+    <h2 data-t="yourPicture"></h2>
+    <div class="picker"><input type="file" id="imageFile" accept="image/*"><label class="btn ghost" for="imageFile" data-t="choose"></label><span class="fname" data-t="noFile"></span></div>
+    <label class="check"><input type="checkbox" id="fill"> <span data-t="fill"></span></label>
+    <div class="actions"><button class="btn" id="keepImage" data-t="useAsMain"></button></div>
+    <p class="hint" data-t="pictureHint"></p>
   </section>
 
   <section class="card">
-    <h2>Ảnh giới thiệu</h2>
-    <label class="field" for="sTitle">Chữ lớn</label><input type="text" id="sTitle" value="iGam3 M1" maxlength="80">
-    <label class="field" for="sSub">Dòng phụ</label><input type="text" id="sSub" value="DePIN Edge AI Node" maxlength="100">
-    <label class="field" for="sFooter">Dòng cuối</label><input type="text" id="sFooter" maxlength="100">
-    <label class="field" for="logoFile">Logo (tuỳ chọn, PNG nền trong suốt là đẹp nhất)</label><input type="file" id="logoFile" accept="image/*">
-    <label class="field" for="photoFile">Ảnh nền (tuỳ chọn)</label><input type="file" id="photoFile" accept="image/*">
+    <h2 data-t="splashHead"></h2>
+    <label class="field" for="sTitle" data-t="sTitle"></label><input type="text" id="sTitle" value="iGam3 M1" maxlength="80">
+    <label class="field" for="sSub" data-t="sSub"></label><input type="text" id="sSub" value="DePIN Edge AI Node" maxlength="100">
+    <label class="field" for="sFooter" data-t="sFooter"></label><input type="text" id="sFooter" maxlength="100">
+    <label class="field" for="logoFile" data-t="logo"></label>
+    <div class="picker"><input type="file" id="logoFile" accept="image/*"><label class="btn ghost" for="logoFile" data-t="choose"></label><span class="fname" data-t="noFile"></span></div>
+    <label class="field" for="photoFile" data-t="photo"></label>
+    <div class="picker"><input type="file" id="photoFile" accept="image/*"><label class="btn ghost" for="photoFile" data-t="choose"></label><span class="fname" data-t="noFile"></span></div>
     <div class="actions">
-      <button class="btn ghost" id="previewSplash">Xem trước</button>
-      <button class="btn" id="keepSplash">Dùng làm màn hình chính</button>
+      <button class="btn ghost" id="previewSplash" data-t="preview"></button>
+      <button class="btn" id="keepSplash" data-t="useAsMain"></button>
     </div>
-    <img id="splashImg" class="splash-preview" alt="Xem trước ảnh giới thiệu">
+    <img id="splashImg" class="splash-preview" data-t-alt="splashAlt">
   </section>
 
   <section class="card span2">
-    <h2>Truy cập từ điện thoại</h2>
+    <h2 data-t="phoneHead"></h2>
     <p class="hint" id="lanHint"></p>
     <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
-      <div><label class="field" for="pw1">Mật khẩu mới (ít nhất 6 ký tự)</label><input type="password" id="pw1" autocomplete="new-password"></div>
-      <div><label class="field" for="pw2">Nhập lại</label><input type="password" id="pw2" autocomplete="new-password"></div>
+      <div><label class="field" for="pw1" data-t="pw1"></label><input type="password" id="pw1" autocomplete="new-password"></div>
+      <div><label class="field" for="pw2" data-t="pw2"></label><input type="password" id="pw2" autocomplete="new-password"></div>
     </div>
     <div class="actions">
-      <button class="btn" id="savePw">Đặt mật khẩu</button>
-      <button class="btn ghost" id="qrNow">Hiện mã QR trên màn nhỏ (1 phút)</button>
+      <button class="btn" id="savePw" data-t="savePw"></button>
+      <button class="btn ghost" id="qrNow" data-t="qrNow"></button>
     </div>
-    <p class="hint" id="shortcutHint">Phím tắt trên máy: <code>Ctrl+Alt+Q</code> hiện mã QR · <code>Ctrl+Alt+F3</code> dòng lệnh · <code>Ctrl+Alt+F2</code> về desktop.</p>
+    <p class="hint" id="shortcutHint" data-t-html="keysLinux"></p>
   </section>
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -179,32 +193,133 @@
 <script>
 const $ = (id) => document.getElementById(id);
 let state = null, textsLoaded = false, toastTimer = null;
-const MODE_HINTS = {
-  stats: "Hiện CPU, RAM, SSD, mạng, giờ… Bật/tắt từng khối ở mục Bảng thông số.",
-  image: "Hiện một ảnh cố định. Đổi ảnh ở mục Ảnh của anh hoặc Ảnh giới thiệu.",
-  console: "Màn nhỏ thành màn hình dòng lệnh của máy (tty3), dùng khi không cắm HDMI: cắm bàn phím USB, bấm Ctrl+Alt+F3 rồi đăng nhập.",
-  qr: "Màn nhỏ luôn hiện mã QR để mở trang này từ điện thoại, kèm hướng dẫn phím tắt. Mã tự đổi khi IP của máy đổi.",
+
+// Texts as [Vietnamese, English]. The server puts the language of the machine in <html lang>
+const VI = document.documentElement.lang === "vi";
+const TEXT = {
+  loading: ["Đang tải…", "Loading…"],
+  running: ["Đang chạy", "Running"],
+  stopped: ["Đã tắt", "Off"],
+  disconnected: ["Mất kết nối", "Disconnected"],
+  subtitle: ['Màn hình 3.5" của máy iGam3', 'The 3.5" screen of the iGam3'],
+  subtitleLive: ['Màn hình 3.5" · {0}', '3.5" screen · {0}'],
+  langAuto: ["Tự động (theo máy)", "Automatic (system)"],
+  nowTitle: ["Màn hình nhỏ lúc này", "The small screen right now"],
+  previewAlt: ["Hình đang hiện trên màn 3.5 inch", "What the 3.5 inch screen shows"],
+  screenOff: ["Màn hình đang tắt", "The screen is off"],
+  noAccess: ["Chưa có quyền dùng màn hình", "No permission to use the screen"],
+  noDevice: ["Không thấy màn hình USB", "USB screen not found"],
+  power: ["Bật màn hình", "Screen on"],
+  autostart: ["Tự bật khi khởi động máy", "Start at boot"],
+  mainTitle: ["Màn hình chính", "Main screen"],
+  modeGroup: ["Chọn màn hình chính", "Choose the main screen"],
+  modeStats: ["Thông số", "Dashboard"],
+  modeImage: ["Ảnh", "Picture"],
+  modeConsole: ["Dòng lệnh", "Console"],
+  modeQr: ["Mã QR", "QR code"],
+  hint_stats: ["Hiện CPU, RAM, SSD, mạng, giờ… Bật/tắt từng khối ở mục Bảng thông số.",
+               "Shows CPU, RAM, SSD, network, time… Turn each block on or off under Dashboard."],
+  hint_image: ["Hiện một ảnh cố định. Đổi ảnh ở mục Ảnh của bạn hoặc Ảnh giới thiệu.",
+               "Shows a fixed picture. Change it under Your picture or Splash picture."],
+  hint_console: ["Màn nhỏ thành màn hình dòng lệnh của máy (tty3), dùng khi không cắm HDMI: cắm bàn phím USB, bấm Ctrl+Alt+F3 rồi đăng nhập.",
+                 "The small screen becomes the text console of the computer (tty3), for use without HDMI: plug in a USB keyboard, press Ctrl+Alt+F3 and log in."],
+  hint_qr: ["Màn nhỏ luôn hiện mã QR để mở trang này từ điện thoại, kèm hướng dẫn phím tắt. Mã tự đổi khi IP của máy đổi.",
+            "The small screen always shows a QR code that opens this page on a phone, with the keyboard shortcuts. The code follows IP changes."],
+  imageName: [" (ảnh: {0})", " (picture: {0})"],
+  consoleWarn: ["Chưa có quyền đọc dòng lệnh. Chạy một lần trong Terminal: <code>sudo {0}</code> rồi khởi động lại máy.",
+                "No permission to read the console yet. Run once in a terminal: <code>sudo {0}</code> then restart the computer."],
+  display: ["Hiển thị", "Display"],
+  brightness: ["Độ sáng", "Brightness"],
+  rotate: ["Xoay 180°", "Rotate 180°"],
+  rotateLabel: ["Xoay 180 độ", "Rotate 180 degrees"],
+  themeLabel: ["Theme bảng thông số", "Dashboard theme"],
+  apply: ["Áp dụng", "Apply"],
+  landscape: ["ngang", "landscape"],
+  portrait: ["dọc", "portrait"],
+  dashTitle: ["Bảng thông số", "Dashboard"],
+  themeWarn: ["Các tuỳ chỉnh dưới đây dành cho theme iGam3.", "The settings below are for the iGam3 theme."],
+  useIgam3: ["Dùng theme iGam3", "Use the iGam3 theme"],
+  blocks: ["Các khối", "Blocks"],
+  titleHead: ["Tiêu đề", "Title"],
+  bigText: ["Chữ lớn (góc trên trái)", "Big text (top left)"],
+  tagText: ["Nhãn bên cạnh (để trống = không có)", "Tag next to it (empty = none)"],
+  saveTitle: ["Lưu tiêu đề", "Save the title"],
+  bgHead: ["Ảnh nền", "Background"],
+  setBg: ["Đặt làm ảnh nền", "Set as background"],
+  removeBg: ["Bỏ ảnh nền", "Remove the background"],
+  bgOwn: ["Đang dùng ảnh nền riêng.", "Using your own background picture."],
+  bgDefault: ["Đang dùng nền tối mặc định.", "Using the default dark background."],
+  yourPicture: ["Ảnh của bạn", "Your picture"],
+  fill: ["Phóng phủ kín màn hình (cắt bớt mép)", "Fill the whole screen (crops the edges)"],
+  useAsMain: ["Dùng làm màn hình chính", "Use as the main screen"],
+  pictureHint: ["PNG, JPG hoặc GIF động. Mỗi lần vẽ kín màn mất khoảng 2 giây, nên GIF chạy chậm.",
+                "PNG, JPG or animated GIF. Drawing the whole screen takes about 2 seconds, so GIFs play slowly."],
+  splashHead: ["Ảnh giới thiệu", "Splash picture"],
+  sTitle: ["Chữ lớn", "Big text"],
+  sSub: ["Dòng phụ", "Subtitle"],
+  sFooter: ["Dòng cuối", "Bottom line"],
+  logo: ["Logo (tuỳ chọn, PNG nền trong suốt là đẹp nhất)", "Logo (optional, best as a PNG with a transparent background)"],
+  photo: ["Ảnh nền (tuỳ chọn)", "Background photo (optional)"],
+  preview: ["Xem trước", "Preview"],
+  splashAlt: ["Xem trước ảnh giới thiệu", "Splash picture preview"],
+  phoneHead: ["Truy cập từ điện thoại", "Access from a phone"],
+  lanOn: ["Đang mở cho mạng LAN: trên điện thoại cùng Wi-Fi, vào <code>{0}</code> và đăng nhập bằng mật khẩu (tên đăng nhập bất kỳ).",
+          "Open to the local network: on a phone on the same Wi-Fi, go to <code>{0}</code> and sign in with the password (any user name)."],
+  lanOff: ["Hiện giao diện chỉ mở được trên chính máy này. Để dùng từ điện thoại khi không cắm HDMI: đặt mật khẩu bên dưới, rồi tự chạy lệnh <code>igam3-screen web --lan on</code> trong Terminal.",
+           "For now this panel only opens on this computer. To use it from a phone (handy without HDMI): set a password below, then run <code>igam3-screen web --lan on</code> in a terminal yourself."],
+  pw1: ["Mật khẩu mới (ít nhất 6 ký tự)", "New password (at least 6 characters)"],
+  pw2: ["Nhập lại", "Repeat it"],
+  savePw: ["Đặt mật khẩu", "Set the password"],
+  qrNow: ["Hiện mã QR trên màn nhỏ (1 phút)", "QR code on the small screen (1 minute)"],
+  keysLinux: ["Phím tắt trên máy: <code>Ctrl+Alt+Q</code> hiện mã QR · <code>Ctrl+Alt+F3</code> dòng lệnh · <code>Ctrl+Alt+F2</code> về desktop.",
+              "Keyboard shortcuts on the computer: <code>Ctrl+Alt+Q</code> QR code · <code>Ctrl+Alt+F3</code> console · <code>Ctrl+Alt+F2</code> back to the desktop."],
+  keysWindows: ["Phím tắt trên máy: <code>Ctrl+Alt+Q</code> hiện mã QR trên màn nhỏ.",
+                "Keyboard shortcut on the computer: <code>Ctrl+Alt+Q</code> shows the QR code on the small screen."],
+  applying: ["Đang áp dụng…", "Applying…"],
+  done: ["Xong", "Done"],
+  failed: ["Có lỗi", "Something went wrong"],
+  unreachable: ["Không kết nối được tới máy: {0}", "Cannot reach the computer: {0}"],
+  noFile: ["Chưa chọn ảnh", "No picture chosen"],
+  choose: ["Chọn ảnh…", "Choose a picture…"],
+  splashKept: ["Đã đặt ảnh giới thiệu làm màn hình chính", "The splash picture is now the main screen"],
+  splashPreview: ["Xem trước bên dưới", "Preview below"],
+  pwMismatch: ["Hai lần nhập không khớp", "The two entries differ"],
 };
 
+function t(key, ...args) {
+  let text = TEXT[key][VI ? 0 : 1];
+  args.forEach((arg, i) => (text = text.replaceAll(`{${i}}`, arg)));
+  return text;
+}
+const esc = (text) => String(text).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+document.querySelectorAll("[data-t]").forEach((el) => (el.textContent = t(el.dataset.t)));
+document.querySelectorAll("[data-t-html]").forEach((el) => (el.innerHTML = t(el.dataset.tHtml)));
+document.querySelectorAll("[data-t-label]").forEach((el) => el.setAttribute("aria-label", t(el.dataset.tLabel)));
+document.querySelectorAll("[data-t-alt]").forEach((el) => (el.alt = t(el.dataset.tAlt)));
+document.querySelectorAll(".picker input").forEach((input) => input.addEventListener("change", () => {
+  input.parentElement.querySelector(".fname").textContent = input.files[0] ? input.files[0].name : t("noFile");
+}));
+
 function toast(message, ok = true) {
-  const t = $("toast");
-  t.textContent = message;
-  t.className = ok ? "" : "err";
-  t.style.display = "block";
+  const box = $("toast");
+  box.textContent = message;
+  box.className = ok ? "" : "err";
+  box.style.display = "block";
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (t.style.display = "none"), ok ? 3500 : 8000);
+  toastTimer = setTimeout(() => (box.style.display = "none"), ok ? 3500 : 8000);
 }
 
 async function action(payload, doneMessage) {
   document.body.classList.add("busy");
-  toast("Đang áp dụng…");
+  toast(t("applying"));
   try {
     const r = await fetch("/api/action", { method: "POST", headers: { "Content-Type": "application/json", "X-Igam3": "1" }, body: JSON.stringify(payload) });
     const res = await r.json();
-    toast(res.ok ? (doneMessage || res.message || "Xong") : (res.message || "Có lỗi"), res.ok);
+    toast(res.ok ? (doneMessage || res.message || t("done")) : (res.message || t("failed")), res.ok);
     return res.ok;
   } catch (e) {
-    toast("Không kết nối được tới máy: " + e.message, false);
+    toast(t("unreachable", e.message), false);
     return false;
   } finally {
     document.body.classList.remove("busy");
@@ -215,7 +330,7 @@ async function action(payload, doneMessage) {
 
 async function upload(slot, input) {
   const file = input.files[0];
-  if (!file) { toast("Chưa chọn file", false); return false; }
+  if (!file) { toast(t("noFile"), false); return false; }
   const r = await fetch(`/api/upload?slot=${slot}&name=${encodeURIComponent(file.name)}`, { method: "POST", headers: { "X-Igam3": "1" }, body: file });
   const res = await r.json();
   if (!res.ok) toast(res.message, false);
@@ -227,24 +342,26 @@ function render(s) {
   const windows = s.platform === "windows";  // no text console mode on Windows
   document.querySelector('.seg button[data-mode="console"]').style.display = windows ? "none" : "";
   document.querySelector(".seg").style.gridTemplateColumns = `repeat(${windows ? 3 : 4}, 1fr)`;
-  if (windows) $("shortcutHint").innerHTML = "Phím tắt trên máy: <code>Ctrl+Alt+Q</code> hiện mã QR trên màn nhỏ.";
+  if (windows) $("shortcutHint").innerHTML = t("keysWindows");
+  if (document.activeElement !== $("language")) $("language").value = s.language_setting;
   const running = s.service.state === "active";
-  $("status").textContent = running ? "Đang chạy" : "Đã tắt";
+  $("status").textContent = t(running ? "running" : "stopped");
   $("status").className = "pill " + (running ? "on" : "off");
-  $("subtitle").textContent = `Màn hình 3.5" · ${s.hostname}${s.ip ? " · " + s.ip : ""}`;
+  $("subtitle").textContent = t("subtitleLive", s.hostname + (s.ip ? " · " + s.ip : ""));
   $("preview").classList.toggle("off", !running);
-  $("veil").textContent = s.device.port ? (s.device.access ? "Màn hình đang tắt" : "Chưa có quyền dùng màn hình") : "Không thấy màn hình USB";
+  $("veil").textContent = t(s.device.port ? (s.device.access ? "screenOff" : "noAccess") : "noDevice");
   $("power").checked = running;
   $("autostart").checked = s.service.autostart;
   document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === s.mode)));
-  $("modeHint").textContent = MODE_HINTS[s.mode] + (s.mode === "image" && s.image ? ` (ảnh: ${s.image})` : "");
+  $("modeHint").textContent = t("hint_" + s.mode) + (s.mode === "image" && s.image ? t("imageName", s.image) : "");
   $("consoleWarn").hidden = !(s.mode === "console" && !s.console.allowed);
+  $("consoleWarn").innerHTML = t("consoleWarn", esc(s.console.setup));
   if (document.activeElement !== $("brightness")) { $("brightness").value = s.brightness; $("brightnessValue").textContent = s.brightness; }
   $("rotate").checked = s.reverse;
   const sel = $("theme");
   if (sel.options.length !== s.themes.length) {
     sel.innerHTML = "";
-    s.themes.forEach((t) => sel.add(new Option(`${t.name} (${t.orientation === "landscape" ? "ngang" : "dọc"})`, t.name)));
+    s.themes.forEach((th) => sel.add(new Option(`${th.name} (${t(th.orientation === "landscape" ? "landscape" : "portrait")})`, th.name)));
   }
   if (document.activeElement !== sel) sel.value = s.theme;
   $("themeWarn").hidden = s.theme === "iGam3";
@@ -253,24 +370,22 @@ function render(s) {
     s.blocks.forEach((b) => {
       const el = document.createElement("label");
       el.className = "toggle";
-      el.innerHTML = `<span>${b.label}</span><span class="switch"><input type="checkbox" data-block="${b.key}"><span></span></span>`;
+      el.innerHTML = `<span>${esc(b.label)}</span><span class="switch"><input type="checkbox" data-block="${esc(b.key)}"><span></span></span>`;
       box.appendChild(el);
     });
     box.querySelectorAll("input").forEach((i) => i.addEventListener("change", () => action({ action: "blocks", blocks: { [i.dataset.block]: i.checked } })));
   }
   s.blocks.forEach((b) => { box.querySelector(`[data-block="${b.key}"]`).checked = b.on; });
   if (!textsLoaded) { $("title").value = s.title; $("tag").value = s.tag; textsLoaded = true; }
-  $("bgHint").textContent = s.background ? "Đang dùng ảnh nền riêng." : "Đang dùng nền tối mặc định.";
-  $("lanHint").innerHTML = s.web.lan
-    ? `Đang mở cho mạng LAN: trên điện thoại cùng Wi-Fi, vào <code>http://${s.ip}:${s.web.port}</code> và đăng nhập bằng mật khẩu (tên đăng nhập bất kỳ).`
-    : `Hiện giao diện chỉ mở được trên chính máy này. Để dùng từ điện thoại khi không cắm HDMI: đặt mật khẩu bên dưới, rồi tự chạy lệnh <code>igam3-screen web --lan on</code> trong Terminal.`;
+  $("bgHint").textContent = t(s.background ? "bgOwn" : "bgDefault");
+  $("lanHint").innerHTML = s.web.lan ? t("lanOn", esc(`http://${s.ip}:${s.web.port}`)) : t("lanOff");
 }
 
 async function refresh() {
   try {
     const r = await fetch("/api/state", { cache: "no-store" });
     if (r.ok) render(await r.json());
-  } catch (e) { $("status").textContent = "Mất kết nối"; $("status").className = "pill off"; }
+  } catch (e) { $("status").textContent = t("disconnected"); $("status").className = "pill off"; }
 }
 
 function refreshPreview() {
@@ -280,6 +395,9 @@ function refreshPreview() {
   img.src = "/screen.png?t=" + Date.now();
 }
 
+$("language").addEventListener("change", async (e) => {
+  if (await action({ action: "language", language: e.target.value })) location.reload();
+});
 document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => action({ action: "mode", mode: b.dataset.mode })));
 $("power").addEventListener("change", (e) => action({ action: "power", on: e.target.checked }));
 $("autostart").addEventListener("change", (e) => action({ action: "autostart", on: e.target.checked }));
@@ -298,7 +416,7 @@ async function splash(keep) {
   for (const [slot, input] of [["logo", $("logoFile")], ["photo", $("photoFile")]]) {
     if (input.files[0]) { if (!(await upload(slot, input))) return; payload[slot] = true; }
   }
-  if (await action(payload, keep ? "Đã đặt ảnh giới thiệu làm màn hình chính" : "Xem trước bên dưới") && !keep) {
+  if (await action(payload, t(keep ? "splashKept" : "splashPreview")) && !keep) {
     const img = $("splashImg");
     img.src = "/splash-preview.png?t=" + Date.now();
     img.style.display = "block";
@@ -308,7 +426,7 @@ $("qrNow").addEventListener("click", () => action({ action: "qr_now" }));
 $("previewSplash").addEventListener("click", () => splash(false));
 $("keepSplash").addEventListener("click", () => splash(true));
 $("savePw").addEventListener("click", () => {
-  if ($("pw1").value !== $("pw2").value) { toast("Hai lần nhập không khớp", false); return; }
+  if ($("pw1").value !== $("pw2").value) { toast(t("pwMismatch"), false); return; }
   action({ action: "password", password: $("pw1").value }).then((ok) => { if (ok) { $("pw1").value = ""; $("pw2").value = ""; } });
 });
 

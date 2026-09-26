@@ -1,5 +1,5 @@
-# Chế độ "Dòng lệnh": hiện màn hình dòng lệnh tty3 của Linux lên màn 3.5", để dùng máy không cần màn HDMI.
-# Cắm bàn phím USB, bấm Ctrl+Alt+F3, đăng nhập và gõ lệnh: chữ hiện trên màn nhỏ.
+# Console mode: shows the Linux text console tty3 on the 3.5" screen, to use the computer without an HDMI monitor.
+# Plug in a USB keyboard, press Ctrl+Alt+F3, log in and type commands: the text appears on the small screen.
 #
 # Reads the text console through /dev/vcsa3 (size, cursor, colours) and /dev/vcsu3 (Unicode characters), and only
 # redraws the rows that changed (a full redraw of the rev. A screen takes ~2 s, one text row ~0.1 s).
@@ -15,6 +15,8 @@ import time
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
+
+from i18n import tr
 
 VT = 3
 CELL_W, CELL_H = 8, 16
@@ -152,8 +154,8 @@ class ConsoleRenderer:
             x = SCREEN_W - card.width - 20
             y = (ROWS * CELL_H - card.height) // 2 - 10
             img.paste(card, (x, y), mask)
-            d.text((x + card.width / 2, y + card.height + 14), "Quét để quản lý", font=body, fill=(148, 163, 184),
-                   anchor="mm")
+            d.text((x + card.width / 2, y + card.height + 14), tr("Quét để quản lý", "Scan to manage"), font=body,
+                   fill=(148, 163, 184), anchor="mm")
             text_x, anchor = 20, "lm"
         else:
             text_x, anchor = SCREEN_W / 2, "mm"
@@ -173,8 +175,14 @@ class ConsoleRenderer:
         self.shown_status = text
 
 
-HOW_TO = ["Chế độ dòng lệnh", "Cắm bàn phím USB rồi bấm Ctrl+Alt+F3", "để đăng nhập và gõ lệnh trên màn này"]
-HOW_TO_BESIDE_QR = ["Chế độ dòng lệnh", "Cắm bàn phím USB,", "bấm Ctrl+Alt+F3 để đăng nhập", "và gõ lệnh trên màn này"]
+def how_to(beside_qr):
+    if beside_qr:  # narrower lines next to the QR code
+        return [tr("Chế độ dòng lệnh", "Console mode"), tr("Cắm bàn phím USB,", "Plug in a USB keyboard,"),
+                tr("bấm Ctrl+Alt+F3 để đăng nhập", "press Ctrl+Alt+F3 to log in"),
+                tr("và gõ lệnh trên màn này", "and type commands here")]
+    return [tr("Chế độ dòng lệnh", "Console mode"),
+            tr("Cắm bàn phím USB rồi bấm Ctrl+Alt+F3", "Plug in a USB keyboard and press Ctrl+Alt+F3"),
+            tr("để đăng nhập và gõ lệnh trên màn này", "to log in and type commands on this screen")]
 
 
 def run_console(lcd, stop, primary_ipv4, web_qr=None):
@@ -183,7 +191,7 @@ def run_console(lcd, stop, primary_ipv4, web_qr=None):
     ip, qr, checked = "", None, 0.0
     while not stop.is_set():
         if time.monotonic() - checked > 5:
-            ip, checked = primary_ipv4() or "không có mạng", time.monotonic()
+            ip, checked = primary_ipv4() or tr("không có mạng", "no network"), time.monotonic()
             qr = web_qr() if web_qr else None
         try:
             fit_console_size()
@@ -192,20 +200,20 @@ def run_console(lcd, stop, primary_ipv4, web_qr=None):
                 renderer.show_console(snapshot)
             else:
                 # Nothing on tty3 until someone switches to it (getty starts then)
-                renderer.show_message(HOW_TO_BESIDE_QR if qr else HOW_TO, qr)
+                renderer.show_message(how_to(qr is not None), qr)
             if active_vt() != f"tty{VT}":
-                status = f"Ctrl+Alt+F{VT}: gõ lệnh trên màn này   IP {ip}"
+                status = f"Ctrl+Alt+F{VT}: " + tr("gõ lệnh trên màn này", "console on this screen") + f"   IP {ip}"
             elif not logged_in():
-                status = f"tty{VT}: đăng nhập bằng tài khoản Ubuntu   IP {ip}"
+                status = f"tty{VT}: " + tr("đăng nhập bằng tài khoản Ubuntu", "log in with your account") + f"   IP {ip}"
             else:
                 status = f"tty{VT}   IP {ip}   {time.strftime('%H:%M')}"
         except ConsoleUnavailable as e:
             if str(e) == "permission":
-                renderer.show_message(["Chưa có quyền đọc dòng lệnh",
-                                       f"Chạy một lần: sudo {SETUP_ROOT}",
-                                       "rồi khởi động lại máy"])
+                renderer.show_message([tr("Chưa có quyền đọc dòng lệnh", "No permission to read the console"),
+                                       tr("Chạy một lần: ", "Run once: ") + f"sudo {SETUP_ROOT}",
+                                       tr("rồi khởi động lại máy", "then restart the computer")])
             else:
-                renderer.show_message(HOW_TO_BESIDE_QR if qr else HOW_TO, qr)
+                renderer.show_message(how_to(qr is not None), qr)
             status = f"IP {ip}"
         renderer.show_status(status)
         stop.wait(0.1)

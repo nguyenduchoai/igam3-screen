@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-# igam3-screen: quản lý màn hình 3.5" (Turing Smart Screen / TURZX rev. A, USB 1a86:5722) của máy iGam3 M1.
-# Bọc chương trình turing-smart-screen-python (thư mục app/), chạy màn hình chính ở chế độ nền (lệnh "run") và giao
-# diện quản lý web tools/web_panel.py. Linux: dịch vụ systemd user. Windows (thử nghiệm): xem tools/platform_support.py
-#   igam3-screen panel         mở giao diện trên chính máy này (tự tắt khi không dùng)
-#   igam3-screen web --lan on  người dùng tự quyết định mở giao diện cho mạng LAN
+# igam3-screen: manager of the built-in 3.5" screen (Turing Smart Screen / TURZX rev. A, USB 1a86:5722) of the
+# iGam3 M1. It wraps turing-smart-screen-python (app/), runs the main screen in the background ("run") and serves
+# the web panel (tools/web_panel.py). Linux: systemd user service. Windows (experimental): tools/platform_support.py
+# Messages are Vietnamese or English (tools/i18n.py).
 
 import argparse
 import getpass
@@ -19,6 +18,8 @@ import threading
 import time
 from pathlib import Path
 
+import i18n
+from i18n import tr
 from platform_support import (WINDOWS, SystemdUserService, WindowsBackgroundTask, background_kwargs,
                               create_shortcut, matching_processes, runtime_dir, start_menu_dir, stop_processes,
                               venv_python, watch_stop_file)
@@ -46,7 +47,8 @@ UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
 BIN_LINK = Path.home() / ".local" / "bin" / "igam3-screen"
 DESKTOP_FILE = Path.home() / ".local" / "share" / "applications" / "igam3-screen.desktop"
 USB_VID, USB_PID = 0x1A86, 0x5722
-MODES = {"stats": "bảng thông số", "image": "ảnh cố định", "console": "dòng lệnh", "qr": "mã QR"}
+MODES = {"stats": ("bảng thông số", "dashboard"), "image": ("ảnh cố định", "picture"),
+         "console": ("dòng lệnh", "console"), "qr": ("mã QR", "QR code")}
 SHORTCUT_SCHEMA = "org.gnome.settings-daemon.plugins.media-keys"
 SHORTCUT_PATH = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/igam3-qr/"
 SHORTCUT_KEYS = "<Control><Alt>q"
@@ -65,8 +67,24 @@ sys.path.insert(0, str(APP))  # library.* of turing-smart-screen-python
 
 
 def die(msg):
-    print(f"Lỗi: {msg}", file=sys.stderr)
+    print(tr("Lỗi: ", "Error: ") + msg, file=sys.stderr)
     sys.exit(1)
+
+
+def mode_name(mode):
+    return tr(*MODES.get(mode, (mode, mode)))
+
+
+def on_off(value):
+    return tr("bật", "on") if value else tr("tắt", "off")
+
+
+def yes_no(value):
+    return tr("có", "yes") if value else tr("không", "no")
+
+
+def orientation_name(orientation):
+    return {"landscape": tr("ngang", "landscape"), "portrait": tr("dọc", "portrait")}.get(orientation, "?")
 
 
 def primary_ipv4():
@@ -129,15 +147,14 @@ def themes_35():
     return result
 
 
-# What the service shows: the stats dashboard, a fixed picture, the text console or the QR code
+# What the service shows (stats dashboard, fixed picture, text console or QR code) and the language
 def load_settings():
-    return load_yaml_dict(SETTINGS, {"mode": "stats", "image": "", "fill": False})
+    return load_yaml_dict(SETTINGS, {"mode": "stats", "image": "", "fill": False, "language": "auto"})
 
 
 def save_settings(settings):
-    save_yaml_dict(SETTINGS, settings, "# Màn hình chính: stats = bảng thông số, image = ảnh cố định, console = dòng lệnh,"
-                                       " qr = mã QR.\n"
-                                       "# Đổi bằng: igam3-screen mode stats|image|console|qr  (hoặc giao diện web)\n")
+    save_yaml_dict(SETTINGS, settings, "# Main screen: stats, image, console or qr - language: auto, vi or en\n"
+                                       "# Change with: igam3-screen mode ... / igam3-screen language ... (or the web panel)\n")
 
 
 # Header text, background photo and blocks of the iGam3 theme: make_theme.py owns their format
@@ -153,20 +170,23 @@ def load_theme_custom():
 
 
 def save_theme_custom(custom):
-    save_yaml_dict(THEME_CUSTOM, custom, "# Tuỳ chỉnh theme iGam3. Đổi bằng: igam3-screen title / background / blocks\n")
+    save_yaml_dict(THEME_CUSTOM, custom, "# iGam3 theme settings. Change with: igam3-screen title / background / blocks\n")
     make_theme = theme_generator()
     layout = make_theme.compute_layout(custom["blocks"])
-    make_theme.draw_background(custom, layout)
-    make_theme.write_theme_yaml(custom, layout)
+    make_theme.draw_background(custom, layout, i18n.LANG)
+    make_theme.write_theme_yaml(custom, layout, i18n.LANG)
 
 
 def apply_dashboard_change():
     _, cfg = load_config()
     if str(cfg["config"]["THEME"]) != IGAM3_THEME.name:
-        print(f"Lưu ý: đang dùng theme '{cfg['config']['THEME']}'. Thay đổi này chỉ áp dụng cho theme iGam3 "
-              f"(chọn lại: igam3-screen theme {IGAM3_THEME.name})")
+        print(tr(f"Lưu ý: đang dùng theme '{cfg['config']['THEME']}'. Thay đổi này chỉ áp dụng cho theme iGam3 "
+                 f"(chọn lại: igam3-screen theme {IGAM3_THEME.name})",
+                 f"Note: the current theme is '{cfg['config']['THEME']}'. This change only applies to the iGam3 theme "
+                 f"(switch back: igam3-screen theme {IGAM3_THEME.name})"))
     elif load_settings()["mode"] != "stats":
-        print("Màn chính đang không phải bảng thông số. Xem bảng thông số: igam3-screen mode stats")
+        print(tr("Màn chính đang không phải bảng thông số. Xem bảng thông số: igam3-screen mode stats",
+                 "The main screen is not the dashboard. Show the dashboard: igam3-screen mode stats"))
     else:
         restart_if_running()
 
@@ -176,7 +196,7 @@ def set_web_password(password):
     salt = secrets.token_hex(16)
     digest = hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt), 200_000).hex()
     WEB_CONFIG.touch(mode=0o600)
-    save_yaml_dict(WEB_CONFIG, {"salt": salt, "hash": digest}, "# Mật khẩu giao diện web (đã băm). Đổi: igam3-screen web --password\n")
+    save_yaml_dict(WEB_CONFIG, {"salt": salt, "hash": digest}, "# Web panel password (hashed). Change: igam3-screen web --password\n")
     os.chmod(WEB_CONFIG, 0o600)
 
 
@@ -192,16 +212,18 @@ def screen_running():
 
 def restart_if_running():
     if screen_running():
-        print("Khởi động lại màn hình để áp dụng...")
+        print(tr("Khởi động lại màn hình để áp dụng...", "Restarting the screen to apply..."))
         SCREEN.restart()
     else:
-        print("Màn hình đang tắt: thay đổi sẽ có hiệu lực khi chạy 'igam3-screen start'.")
+        print(tr("Màn hình đang tắt: thay đổi sẽ có hiệu lực khi chạy 'igam3-screen start'.",
+                 "The screen is off: the change applies at the next 'igam3-screen start'."))
 
 
 def take_over_screen():
     # Only one program can talk to the serial port: stop the service first
     if screen_running():
-        print("Tạm dừng màn hình chính (chạy 'igam3-screen start' để bật lại)...")
+        print(tr("Tạm dừng màn hình chính (chạy 'igam3-screen start' để bật lại)...",
+                 "Pausing the main screen ('igam3-screen start' brings it back)..."))
         SCREEN.stop()
         time.sleep(1)
 
@@ -219,10 +241,12 @@ def find_port():
 def require_port():
     port = find_port()
     if not port:
-        die('không thấy màn hình USB 1a86:5722 (Turing/TURZX 3.5"). Kiểm tra bằng '
-            + ("Device Manager > Ports (COM & LPT)" if WINDOWS else "lệnh: lsusb"))
+        where = "Device Manager > Ports (COM & LPT)" if WINDOWS else tr("lệnh: lsusb", "the command: lsusb")
+        die(tr(f'không thấy màn hình USB 1a86:5722 (Turing/TURZX 3.5"). Kiểm tra bằng {where}',
+               f'no USB screen 1a86:5722 found (Turing/TURZX 3.5"). Check with {where}'))
     if not WINDOWS and not os.access(port, os.R_OK | os.W_OK):
-        die(f"chưa có quyền mở {port}. Chạy một lần: sudo {SETUP_ROOT}")
+        die(tr(f"chưa có quyền mở {port}. Chạy một lần: sudo {SETUP_ROOT}",
+               f"no permission to open {port}. Run once: sudo {SETUP_ROOT}"))
     return port
 
 
@@ -233,7 +257,8 @@ def open_lcd(orientation=None, init=True):
         try:
             serial.Serial(port).close()
         except serial.SerialException:
-            die(f"{port} đang bị chương trình khác dùng. Tắt app TURZX (và bỏ nó khỏi Startup) rồi thử lại.")
+            die(tr(f"{port} đang bị chương trình khác dùng. Tắt app TURZX (và bỏ nó khỏi Startup) rồi thử lại.",
+                   f"{port} is used by another program. Close the TURZX app (and remove it from Startup), then retry."))
     os.chdir(APP)  # library/log.py writes log.log into the current directory
     from library.lcd.lcd_comm import Orientation
     from library.lcd.lcd_comm_rev_a import LcdCommRevA
@@ -318,12 +343,12 @@ def checked_image_path(file):
     from PIL import Image
     path = Path(file).expanduser().resolve()
     if not path.is_file():
-        die(f"không thấy file {path}")
+        die(tr(f"không thấy file {path}", f"file not found: {path}"))
     try:
         with Image.open(path) as img:
             img.verify()
     except Exception as e:
-        die(f"không mở được ảnh {path.name}: {e}")
+        die(tr(f"không mở được ảnh {path.name}: {e}", f"cannot open the picture {path.name}: {e}"))
     return path
 
 
@@ -390,10 +415,12 @@ def show_temporarily(path, fill, orientation=None, once=False):
     lcd = open_lcd(orientation)
     frames = load_frames(path, (lcd.get_width(), lcd.get_height()), fill)
     if len(frames) > 1:
-        print(f"Đang phát ảnh động {path.name}: {len(frames)} khung hình. Ctrl+C để dừng.")
+        print(tr(f"Đang phát ảnh động {path.name}: {len(frames)} khung hình. Ctrl+C để dừng.",
+                 f"Playing the animation {path.name}: {len(frames)} frames. Ctrl+C to stop."))
     play(lcd, frames, stop, loop=not once)
     mirror.flush()
-    print(f"Đã hiển thị {path.name}. Quay lại màn chính: igam3-screen start")
+    print(tr(f"Đã hiển thị {path.name}. Quay lại màn chính: igam3-screen start",
+             f"Showing {path.name}. Back to the main screen: igam3-screen start"))
 
 
 def keep_image(path, fill):
@@ -404,8 +431,11 @@ def keep_image(path, fill):
         old.unlink()
     dest = IMAGES / f"main{path.suffix.lower()}"
     dest.write_bytes(data)
-    save_settings({"mode": "image", "image": str(dest), "fill": fill})
-    print(f"Màn chính: ảnh {path.name}, giữ nguyên cả khi khởi động lại. Quay lại bảng thông số: igam3-screen mode stats")
+    settings = load_settings()
+    settings.update({"mode": "image", "image": str(dest), "fill": fill})
+    save_settings(settings)
+    print(tr(f"Màn chính: ảnh {path.name}, giữ nguyên cả khi khởi động lại. Quay lại bảng thông số: igam3-screen mode stats",
+             f"Main screen: picture {path.name}, kept after a restart. Back to the dashboard: igam3-screen mode stats"))
     SCREEN.restart()
 
 
@@ -419,7 +449,7 @@ def test_pattern(w, h):
     d.rectangle([3, 3, w - 4, 16], fill=(251, 191, 36))  # yellow strip = top edge
     d.polygon([(w // 2, 40), (w // 2 - 40, 100), (w // 2 + 40, 100)], fill=(52, 211, 153))
     d.rectangle([w // 2 - 14, 100, w // 2 + 14, 150], fill=(52, 211, 153))
-    d.text((w // 2, 175), "TRÊN ↑", font=big, fill=(255, 255, 255), anchor="mm")
+    d.text((w // 2, 175), tr("TRÊN ↑", "TOP ↑"), font=big, fill=(255, 255, 255), anchor="mm")
     d.text((w // 2, 210), f"{w} x {h}", font=small, fill=(148, 163, 184), anchor="mm")
     for label, xy, anchor in (("1", (12, 24), "lt"), ("2", (w - 12, 24), "rt"),
                               ("3", (12, h - 12), "lb"), ("4", (w - 12, h - 12), "rb")):
@@ -434,9 +464,11 @@ def status_dict():
     info = theme_info(theme)
     settings = load_settings()
     custom = load_theme_custom()
-    blocks = theme_generator().BLOCKS
+    blocks = theme_generator().block_labels(i18n.LANG)
     return {
         "platform": "windows" if WINDOWS else "linux",
+        "language": i18n.LANG,
+        "language_setting": i18n.language_setting(),
         "device": {"port": port, "access": bool(port and (WINDOWS or os.access(port, os.R_OK | os.W_OK)))},
         "service": {"state": SCREEN.state(), "autostart": SCREEN.autostart()},
         "mode": settings["mode"],
@@ -451,7 +483,8 @@ def status_dict():
         "blocks": [{"key": k, "label": label, "on": custom["blocks"][k]} for k, label in blocks.items()],
         "brightness": int(cfg["display"].get("BRIGHTNESS", 30)),
         "reverse": bool(cfg["display"].get("DISPLAY_REVERSE", False)),
-        "console": {"allowed": not WINDOWS and os.access(CONSOLE_VCS, os.R_OK), "active_vt": _active_vt()},
+        "console": {"allowed": not WINDOWS and os.access(CONSOLE_VCS, os.R_OK), "active_vt": _active_vt(),
+                    "setup": str(SETUP_ROOT)},
         "ip": primary_ipv4(),
         "hostname": socket.gethostname(),
         "web": {"port": WEB_PORT, "password_set": WEB_CONFIG.is_file(), "lan": WEB.state() == "active"},
@@ -518,25 +551,38 @@ def cmd_status(args):
         return
     dev = st["device"]
     if not dev["port"]:
-        screen = "KHÔNG THẤY (USB 1a86:5722)"
+        screen = tr("KHÔNG THẤY (USB 1a86:5722)", "NOT FOUND (USB 1a86:5722)")
     elif dev["access"]:
-        screen = f"{dev['port']} (có quyền truy cập)"
+        screen = tr(f"{dev['port']} (có quyền truy cập)", f"{dev['port']} (accessible)")
     else:
-        screen = f"{dev['port']} (CHƯA CÓ QUYỀN: sudo {SETUP_ROOT})"
-    main = MODES.get(st["mode"], st["mode"]) + (f" ({st['image']})" if st["mode"] == "image" else "")
-    orientation = {"landscape": "ngang", "portrait": "dọc"}.get(st["orientation"], "?")
-    print(f"Màn hình  : {screen}")
-    print(f"Dịch vụ   : {st['service']['state']} (tự chạy khi khởi động: {'có' if st['service']['autostart'] else 'không'})")
-    print(f"Màn chính : {main}")
-    print(f"Theme     : {st['theme']} ({orientation})")
+        screen = tr(f"{dev['port']} (CHƯA CÓ QUYỀN: sudo {SETUP_ROOT})", f"{dev['port']} (NO PERMISSION: sudo {SETUP_ROOT})")
+    main = mode_name(st["mode"]) + (f" ({st['image']})" if st["mode"] == "image" else "")
+    language = tr("Tiếng Việt", "English") + (tr(" (tự theo máy)", " (follows the system)")
+                                              if st["language_setting"] == "auto" else "")
+    lines = [
+        (tr("Màn hình", "Screen"), screen),
+        (tr("Dịch vụ", "Service"), f"{st['service']['state']} ({tr('tự chạy khi khởi động', 'start at boot')}: "
+                                   f"{yes_no(st['service']['autostart'])})"),
+        (tr("Màn chính", "Main screen"), main),
+        ("Theme", f"{st['theme']} ({orientation_name(st['orientation'])})"),
+    ]
     if st["theme"] == IGAM3_THEME.name:
-        print(f"Tiêu đề   : \"{st['title']}\"  nhãn \"{st['tag']}\"  ảnh nền: {st['background'] or 'mặc định'}")
-        print("Các khối  : " + ", ".join(f"{b['label']} {'bật' if b['on'] else 'tắt'}" for b in st["blocks"]))
-    print(f"Độ sáng   : {st['brightness']}%   Xoay 180°: {'có' if st['reverse'] else 'không'}")
+        lines.append((tr("Tiêu đề", "Title"), f"\"{st['title']}\"  {tr('nhãn', 'tag')} \"{st['tag']}\"  "
+                      f"{tr('ảnh nền', 'background')}: {st['background'] or tr('mặc định', 'default')}"))
+        lines.append((tr("Các khối", "Blocks"), ", ".join(f"{b['label']} {on_off(b['on'])}" for b in st["blocks"])))
+    lines.append((tr("Độ sáng", "Brightness"), f"{st['brightness']}%   {tr('Xoay 180°', 'Rotated 180°')}: "
+                  f"{yes_no(st['reverse'])}"))
+    lines.append((tr("Ngôn ngữ", "Language"), language))
     if st["web"]["lan"]:
-        print(f"Giao diện : http://{st['ip']}:{WEB_PORT} (mở cho mạng LAN, có mật khẩu)")
+        web = tr(f"http://{st['ip']}:{WEB_PORT} (mở cho mạng LAN, có mật khẩu)",
+                 f"http://{st['ip']}:{WEB_PORT} (open to the local network, with a password)")
     else:
-        print(f"Giao diện : igam3-screen panel (chỉ trên máy này; mở cho mạng LAN: igam3-screen web --lan on)")
+        web = tr("igam3-screen panel (chỉ trên máy này; mở cho mạng LAN: igam3-screen web --lan on)",
+                 "igam3-screen panel (this computer only; open to the local network: igam3-screen web --lan on)")
+    lines.append((tr("Giao diện", "Web panel"), web))
+    width = max(len(name) for name, _ in lines)
+    for name, value in lines:
+        print(f"{name:<{width}} : {value}")
 
 
 def cmd_start(_):
@@ -561,26 +607,43 @@ def cmd_disable(_):
 
 def cmd_autostart(args):
     code = SCREEN.set_autostart(args.state == "on")
-    print(f"Tự bật màn hình khi khởi động máy: {'có' if args.state == 'on' else 'không'}")
+    print(tr("Tự bật màn hình khi khởi động máy: ", "Start the screen at boot: ") + yes_no(args.state == "on"))
     sys.exit(code)
 
 
 def cmd_mode(args):
     if args.mode == "console" and WINDOWS:
-        die("chế độ Dòng lệnh chỉ có trên Linux")
+        die(tr("chế độ Dòng lệnh chỉ có trên Linux", "the console mode is Linux only"))
     settings = load_settings()
     if args.mode == "image" and not Path(str(settings["image"])).is_file():
-        die("chưa có ảnh nào: dùng 'igam3-screen image <ảnh> --keep' hoặc 'igam3-screen splash ... --keep'")
+        die(tr("chưa có ảnh nào: dùng 'igam3-screen image <ảnh> --keep' hoặc 'igam3-screen splash ... --keep'",
+               "no picture yet: use 'igam3-screen image <picture> --keep' or 'igam3-screen splash ... --keep'"))
     settings["mode"] = args.mode
     save_settings(settings)
-    print(f"Màn chính: {MODES[args.mode]}")
+    print(tr("Màn chính: ", "Main screen: ") + mode_name(args.mode))
     if args.mode == "console":
         if not os.access(CONSOLE_VCS, os.R_OK):
-            print(f"Lưu ý: chưa có quyền đọc dòng lệnh. Chạy một lần: sudo {SETUP_ROOT}")
-        print("Cắm bàn phím USB, bấm Ctrl+Alt+F3 để đăng nhập và gõ lệnh trên màn nhỏ.")
+            print(tr(f"Lưu ý: chưa có quyền đọc dòng lệnh. Chạy một lần: sudo {SETUP_ROOT}",
+                     f"Note: no permission to read the console yet. Run once: sudo {SETUP_ROOT}"))
+        print(tr("Cắm bàn phím USB, bấm Ctrl+Alt+F3 để đăng nhập và gõ lệnh trên màn nhỏ.",
+                 "Plug in a USB keyboard and press Ctrl+Alt+F3 to log in and type commands on the small screen."))
     if args.mode == "qr" and WEB.state() != "active":
-        print("Lưu ý: giao diện chưa mở cho mạng LAN nên chưa quét được. Mở: igam3-screen web --lan on")
+        print(tr("Lưu ý: giao diện chưa mở cho mạng LAN nên chưa quét được. Mở: igam3-screen web --lan on",
+                 "Note: the web panel is not open to the local network, so the code cannot be used yet. "
+                 "Open it: igam3-screen web --lan on"))
     SCREEN.restart()
+
+
+def cmd_language(args):
+    settings = load_settings()
+    settings["language"] = args.language
+    save_settings(settings)
+    os.environ.pop("IGAM3_LANG", None)
+    i18n.refresh()
+    print(tr("Ngôn ngữ: Tiếng Việt", "Language: English") +
+          (tr(" (tự theo máy)", " (follows the system)") if args.language == "auto" else ""))
+    save_theme_custom(load_theme_custom())  # dashboard labels and date format
+    restart_if_running()
 
 
 def cmd_title(args):
@@ -589,14 +652,15 @@ def cmd_title(args):
     if args.tag is not None:
         custom["tag"] = args.tag
     save_theme_custom(custom)
-    print(f"Tiêu đề bảng thông số: \"{custom['title']}\"" +
-          (f", nhãn \"{custom['tag']}\"" if custom["tag"] else ", không có nhãn"))
+    print(tr(f"Tiêu đề bảng thông số: \"{custom['title']}\"", f"Dashboard title: \"{custom['title']}\"") +
+          (tr(f", nhãn \"{custom['tag']}\"", f", tag \"{custom['tag']}\"") if custom["tag"] else tr(", không có nhãn", ", no tag")))
     apply_dashboard_change()
 
 
 def cmd_background(args):
     if args.none == bool(args.file):
-        die("cần đúng một trong hai: đường dẫn ảnh, hoặc --none để bỏ ảnh nền")
+        die(tr("cần đúng một trong hai: đường dẫn ảnh, hoặc --none để bỏ ảnh nền",
+               "give either a picture, or --none to remove the background"))
     path = checked_image_path(args.file) if args.file else None
     data = path.read_bytes() if path else None
     custom = load_theme_custom()
@@ -608,25 +672,27 @@ def cmd_background(args):
         dest.write_bytes(data)
         custom["background"] = dest.name
     save_theme_custom(custom)
-    print("Ảnh nền bảng thông số: " + (path.name if path else "mặc định (nền tối)"))
+    print(tr("Ảnh nền bảng thông số: ", "Dashboard background: ") +
+          (path.name if path else tr("mặc định (nền tối)", "default (dark)")))
     apply_dashboard_change()
 
 
 def cmd_blocks(args):
-    blocks = theme_generator().BLOCKS
+    blocks = theme_generator().block_labels(i18n.LANG)
     custom = load_theme_custom()
     if not args.changes:
         for key, label in blocks.items():
-            print(f"  {key:<9} {label:<10} {'bật' if custom['blocks'][key] else 'tắt'}")
-        print("Đổi: igam3-screen blocks ssd=off network=on ...")
+            print(f"  {key:<9} {label:<10} {on_off(custom['blocks'][key])}")
+        print(tr("Đổi: igam3-screen blocks ssd=off network=on ...", "Change: igam3-screen blocks ssd=off network=on ..."))
         return
     for change in args.changes:
         key, _, value = change.partition("=")
         if key not in blocks or value not in ("on", "off"):
-            die(f"'{change}' không hợp lệ: dùng dạng cpu=on hoặc ssd=off. Các khối: {', '.join(blocks)}")
+            die(tr(f"'{change}' không hợp lệ: dùng dạng cpu=on hoặc ssd=off. Các khối: {', '.join(blocks)}",
+                   f"'{change}' is not valid: use cpu=on or ssd=off. Blocks: {', '.join(blocks)}"))
         custom["blocks"][key] = value == "on"
     save_theme_custom(custom)
-    print("Các khối: " + ", ".join(f"{label} {'bật' if custom['blocks'][k] else 'tắt'}" for k, label in blocks.items()))
+    print(tr("Các khối: ", "Blocks: ") + ", ".join(f"{label} {on_off(custom['blocks'][k])}" for k, label in blocks.items()))
     apply_dashboard_change()
 
 
@@ -637,12 +703,12 @@ def cmd_splash(args):
     image = make_splash(args.title, args.subtitle, args.footer, photo, logo)
     if args.out:
         image.save(args.out)
-        print(f"Đã tạo ảnh {args.out}")
+        print(tr("Đã tạo ảnh ", "Picture created: ") + str(args.out))
         return
     IMAGES.mkdir(exist_ok=True)
     out = IMAGES / "splash.png"
     image.save(out)
-    print(f"Đã tạo ảnh {out}")
+    print(tr("Đã tạo ảnh ", "Picture created: ") + str(out))
     if args.keep:
         require_port()
         keep_image(out, fill=False)
@@ -653,18 +719,20 @@ def cmd_splash(args):
 def cmd_themes(_):
     _, cfg = load_config()
     current = str(cfg["config"]["THEME"])
-    print('Theme cho màn 3.5" (* = đang dùng):')
+    print(tr('Theme cho màn 3.5" (* = đang dùng):', 'Themes for the 3.5" screen (* = in use):'))
     for theme in themes_35():
         mark = "*" if theme["name"] == current else " "
-        print(f" {mark} {theme['name']:<28} {'ngang' if theme['orientation'] == 'landscape' else 'dọc'}")
+        print(f" {mark} {theme['name']:<28} {orientation_name(theme['orientation'])}")
 
 
 def cmd_theme(args):
     info = theme_info(args.name)
     if not info:
-        die(f"không có theme '{args.name}'. Xem danh sách: igam3-screen themes")
+        die(tr(f"không có theme '{args.name}'. Xem danh sách: igam3-screen themes",
+               f"no theme '{args.name}'. List: igam3-screen themes"))
     if info[0] != '3.5"':
-        die(f"theme '{args.name}' dành cho màn {info[0]}, không dùng được cho màn 3.5\"")
+        die(tr(f"theme '{args.name}' dành cho màn {info[0]}, không dùng được cho màn 3.5\"",
+               f"theme '{args.name}' is made for a {info[0]} screen, not the 3.5\" one"))
     yaml, cfg = load_config()
     cfg["config"]["THEME"] = args.name
     save_config(yaml, cfg)
@@ -674,11 +742,13 @@ def cmd_theme(args):
 
 def cmd_brightness(args):
     if not 0 <= args.level <= 100:
-        die("độ sáng phải từ 0 đến 100")
+        die(tr("độ sáng phải từ 0 đến 100", "brightness must be between 0 and 100"))
     yaml, cfg = load_config()
     cfg["display"]["BRIGHTNESS"] = args.level
     save_config(yaml, cfg)
-    print(f"Độ sáng: {args.level}%" + ("  (lưu ý: màn rev A dễ nóng khi để sáng cao)" if args.level > 60 else ""))
+    print(tr(f"Độ sáng: {args.level}%", f"Brightness: {args.level}%") +
+          (tr("  (lưu ý: màn này dễ nóng khi để sáng cao)", "  (note: this screen gets hot at high brightness)")
+           if args.level > 60 else ""))
     restart_if_running()
 
 
@@ -687,7 +757,7 @@ def cmd_rotate(args):
     reverse = args.state == "on" if args.state else not bool(cfg["display"].get("DISPLAY_REVERSE", False))
     cfg["display"]["DISPLAY_REVERSE"] = reverse
     save_config(yaml, cfg)
-    print(f"Xoay 180°: {'bật' if reverse else 'tắt'}")
+    print(tr("Xoay 180°: ", "Rotated 180°: ") + on_off(reverse))
     restart_if_running()
 
 
@@ -721,7 +791,7 @@ def cmd_qr(args):
     """Show the QR code of the web panel for a while (Ctrl+Alt+Q), then give the screen back to the main screen"""
     lock = lock_once("qr")
     if not lock:
-        print("Màn nhỏ đang hiện mã QR rồi.")
+        print(tr("Màn nhỏ đang hiện mã QR rồi.", "The small screen already shows the QR code."))
         return
     require_port()
     was_running = screen_running()
@@ -731,7 +801,9 @@ def cmd_qr(args):
     lcd = open_lcd("landscape")
     lcd.DisplayPILImage(qr_screen_image(qr_screen_state()))
     mirror.flush()
-    print(f"Màn nhỏ đang hiện mã QR trong {args.seconds} giây, sau đó quay lại màn hình chính.", flush=True)
+    print(tr(f"Màn nhỏ đang hiện mã QR trong {args.seconds} giây, sau đó quay lại màn hình chính.",
+             f"The small screen shows the QR code for {args.seconds} seconds, then goes back to the main screen."),
+          flush=True)
     stop.wait(args.seconds)
     if was_running:
         lcd.closeSerial()  # Windows lets only one program open a COM port: free it for the main screen
@@ -746,25 +818,28 @@ def gsettings(*args):
 
 def cmd_shortcut(args):
     """Ctrl+Alt+Q -> igam3-screen qr: GNOME custom shortcut on Linux, Start menu shortcut with a hotkey on Windows"""
+    done = tr("Phím tắt Ctrl+Alt+Q (hiện mã QR trên màn nhỏ 1 phút): ",
+              "Shortcut Ctrl+Alt+Q (QR code on the small screen for 1 minute): ") + on_off(args.state == "on")
     if WINDOWS:
-        link = start_menu_dir() / "iGam3 - Mã QR.lnk"
+        link = start_menu_dir() / "iGam3 Screen - QR.lnk"
         if args.state == "on":
             create_shortcut(link, VENV_PYTHONW, f'"{TOOLS / "igam3_screen.py"}" qr', ROOT, ICON, "CTRL+ALT+Q")
         else:
             link.unlink(missing_ok=True)
-        print("Phím tắt Ctrl+Alt+Q (hiện mã QR trên màn nhỏ 1 phút): " + ("bật" if args.state == "on" else "tắt"))
+        print(done)
         return
     import ast
     result = gsettings("get", SHORTCUT_SCHEMA, "custom-keybindings")
     if result.returncode != 0:
-        die("không đọc được phím tắt GNOME: hãy chạy lệnh này trong phiên desktop")
+        die(tr("không đọc được phím tắt GNOME: hãy chạy lệnh này trong phiên desktop",
+               "cannot read the GNOME shortcuts: run this command in the desktop session"))
     raw = result.stdout.strip()
     paths = ast.literal_eval(raw.replace("@as ", "", 1)) if raw else []
     entry = f"{SHORTCUT_SCHEMA}.custom-keybinding:{SHORTCUT_PATH}"
     quote = lambda text: "'" + text.replace("\\", "\\\\").replace("'", "\\'") + "'"
     if args.state == "on":
-        for key, value in (("name", "iGam3: hiện mã QR trên màn nhỏ"), ("command", f"{ROOT / 'igam3-screen'} qr"),
-                           ("binding", SHORTCUT_KEYS)):
+        for key, value in (("name", tr("iGam3: hiện mã QR trên màn nhỏ", "iGam3: QR code on the small screen")),
+                           ("command", f"{ROOT / 'igam3-screen'} qr"), ("binding", SHORTCUT_KEYS)):
             gsettings("set", entry, key, quote(value))
         if SHORTCUT_PATH not in paths:
             paths.append(SHORTCUT_PATH)
@@ -774,8 +849,8 @@ def cmd_shortcut(args):
             gsettings("reset", entry, key)
     result = gsettings("set", SHORTCUT_SCHEMA, "custom-keybindings", str(paths) if paths else "@as []")
     if result.returncode != 0:
-        die(f"không lưu được phím tắt: {result.stderr.strip()}")
-    print("Phím tắt Ctrl+Alt+Q (hiện mã QR trên màn nhỏ 1 phút): " + ("bật" if args.state == "on" else "tắt"))
+        die(tr("không lưu được phím tắt: ", "cannot save the shortcut: ") + result.stderr.strip())
+    print(done)
 
 
 def cmd_test(args):
@@ -785,8 +860,10 @@ def cmd_test(args):
     lcd = open_lcd(args.orientation)
     lcd.DisplayPILImage(test_pattern(lcd.get_width(), lcd.get_height()))
     mirror.flush()
-    print("Đang hiện hình kiểm tra: mũi tên xanh phải chỉ lên trên, số 1 ở góc trên bên trái.")
-    print("Nếu bị ngược: igam3-screen rotate   |   Quay lại màn chính: igam3-screen start")
+    print(tr("Đang hiện hình kiểm tra: mũi tên xanh phải chỉ lên trên, số 1 ở góc trên bên trái.",
+             "Showing the test pattern: the green arrow must point up, with 1 in the top left corner."))
+    print(tr("Nếu bị ngược: igam3-screen rotate   |   Quay lại màn chính: igam3-screen start",
+             "Upside down: igam3-screen rotate   |   Back to the main screen: igam3-screen start"))
 
 
 def cmd_off(_):
@@ -794,14 +871,15 @@ def cmd_off(_):
         SCREEN.stop()  # the running screen program turns the screen off when it stops
     else:
         open_lcd(init=False).ScreenOff()
-    print("Đã tắt màn hình. Bật lại: igam3-screen start")
+    print(tr("Đã tắt màn hình. Bật lại: igam3-screen start", "Screen turned off. Turn it back on: igam3-screen start"))
 
 
 def cmd_config(_):
     try:
         import tkinter  # noqa: F401
     except ImportError:
-        die("giao diện cấu hình cần tkinter: sudo apt install python3-tk")
+        die(tr("trình cấu hình cần tkinter: sudo apt install python3-tk",
+               "the configuration window needs tkinter: sudo apt install python3-tk"))
     take_over_screen()
     # "Save and run" in the wizard starts main.py through '#!/usr/bin/env python': make that the venv python
     env = dict(os.environ, PATH=f"{VENV_PYTHON.parent}{os.pathsep}{os.environ.get('PATH', '')}")
@@ -809,7 +887,7 @@ def cmd_config(_):
     # Hand the screen back to the service instead of a main.py started by the wizard
     if stop_processes(matching_processes(APP / "main.py")):
         time.sleep(3)
-    print("Bật lại màn hình chính với cấu hình mới...")
+    print(tr("Bật lại màn hình chính với cấu hình mới...", "Starting the main screen with the new settings..."))
     SCREEN.start()
 
 
@@ -824,7 +902,7 @@ def cmd_panel(args):
                 break
             time.sleep(0.1)
     url = f"http://localhost:{WEB_PORT}"
-    print(f"Giao diện quản lý: {url}")
+    print(tr("Giao diện quản lý: ", "Web panel: ") + url)
     if not args.no_open:
         if WINDOWS:
             os.startfile(url)
@@ -834,16 +912,18 @@ def cmd_panel(args):
 
 def cmd_web(args):
     if args.password:
-        first = getpass.getpass("Mật khẩu mới cho giao diện web: ")
+        first = getpass.getpass(tr("Mật khẩu mới cho giao diện web: ", "New password for the web panel: "))
         if len(first) < 6:
-            die("mật khẩu cần ít nhất 6 ký tự")
-        if getpass.getpass("Nhập lại: ") != first:
-            die("hai lần nhập không khớp")
+            die(tr("mật khẩu cần ít nhất 6 ký tự", "the password needs at least 6 characters"))
+        if getpass.getpass(tr("Nhập lại: ", "Again: ")) != first:
+            die(tr("hai lần nhập không khớp", "the two entries differ"))
         set_web_password(first)
-        print("Đã đặt mật khẩu. Tên đăng nhập bất kỳ (ví dụ: admin).")
+        print(tr("Đã đặt mật khẩu. Tên đăng nhập bất kỳ (ví dụ: admin).",
+                 "Password set. Any user name works (for example: admin)."))
     if args.lan == "on":
         if not WEB_CONFIG.is_file():
-            die("cần đặt mật khẩu trước: igam3-screen web --password")
+            die(tr("cần đặt mật khẩu trước: igam3-screen web --password",
+                   "set a password first: igam3-screen web --password"))
         stop_processes(matching_processes(TOOLS / "web_panel.py"))  # the local-only panel frees the port
         if not WINDOWS:
             UNIT_DIR.mkdir(parents=True, exist_ok=True)
@@ -851,19 +931,23 @@ def cmd_web(args):
             systemctl_user("daemon-reload")
         WEB.set_autostart(True, now=True)
         if WINDOWS:
-            print("Nếu Windows hỏi có cho Python dùng mạng không: chọn Allow cho mạng riêng (Private networks).")
+            print(tr("Nếu Windows hỏi có cho Python dùng mạng không: chọn Allow cho mạng riêng (Private networks).",
+                     "If Windows asks whether Python may use the network: allow it for Private networks."))
     elif args.lan == "off":
         WEB.set_autostart(False, now=True)
         if not WINDOWS:
             (UNIT_DIR / WEB_SERVICE).unlink(missing_ok=True)
             systemctl_user("daemon-reload")
     ip = primary_ipv4()
-    print(f"Trên máy này : igam3-screen panel  (http://localhost:{WEB_PORT})")
+    print(tr("Trên máy này : ", "This computer : ") + f"igam3-screen panel  (http://localhost:{WEB_PORT})")
     if WEB.state() == "active":
-        print(f"Mạng LAN     : BẬT, tự chạy khi khởi động — http://{ip}:{WEB_PORT} (đăng nhập bằng mật khẩu)")
+        print(tr(f"Mạng LAN     : BẬT, tự chạy khi khởi động — http://{ip}:{WEB_PORT} (đăng nhập bằng mật khẩu)",
+                 f"Local network : ON, starts at boot — http://{ip}:{WEB_PORT} (sign in with the password)"))
     else:
-        print(f"Mạng LAN     : tắt. Mở cho điện thoại: igam3-screen web --lan on"
-              + ("" if WEB_CONFIG.is_file() else " (đặt mật khẩu trước: igam3-screen web --password)"))
+        print(tr("Mạng LAN     : tắt. Mở cho điện thoại: igam3-screen web --lan on",
+                 "Local network : off. Open it to phones: igam3-screen web --lan on")
+              + ("" if WEB_CONFIG.is_file() else tr(" (đặt mật khẩu trước: igam3-screen web --password)",
+                                                    " (set a password first: igam3-screen web --password)")))
 
 
 def cmd_logs(args):
@@ -892,6 +976,11 @@ def cmd_init(args):
     if WINDOWS:
         cfg["config"]["HW_SENSORS"] = "PYTHON"  # LibreHardwareMonitor needs admin rights and is not shipped
     save_config(yaml, cfg)
+    if args.language:
+        settings = load_settings()
+        settings["language"] = args.language
+        save_settings(settings)
+        i18n.refresh()
     custom = load_theme_custom()
     if args.title is not None:
         custom["title"] = args.title
@@ -899,18 +988,21 @@ def cmd_init(args):
         custom["tag"] = args.tag
     save_theme_custom(custom)
     labels = theme_generator().hardware_labels()
-    print(f"Card mạng: LAN {cfg['config']['ETH'] or '-'}, Wi-Fi {cfg['config']['WLO'] or '-'}")
-    print(f"Phần cứng: {labels['cpu']}, RAM {labels['ram']}, ổ {labels['ssd']}")
-    print(f"Tiêu đề  : \"{custom['title']}\"  nhãn \"{custom['tag']}\"")
+    print(tr("Card mạng: ", "Network  : ") + f"LAN {cfg['config']['ETH'] or '-'}, Wi-Fi {cfg['config']['WLO'] or '-'}")
+    print(tr("Phần cứng: ", "Hardware : ") + f"{labels['cpu']}, RAM {labels['ram']}, " + tr("ổ ", "disk ") + labels["ssd"])
+    print(tr("Tiêu đề  : ", "Title    : ") + f"\"{custom['title']}\"  " + tr("nhãn", "tag") + f" \"{custom['tag']}\"")
+    print(tr("Ngôn ngữ : Tiếng Việt", "Language : English"))
 
 
 def cmd_install(args):
     if WINDOWS:
         menu = start_menu_dir()
+        for old in ("Gỡ cài đặt iGam3 Screen.lnk", "iGam3 - Mã QR.lnk"):  # names used by version 1.0
+            (menu / old).unlink(missing_ok=True)
         create_shortcut(menu / "iGam3 Screen.lnk", VENV_PYTHONW, f'"{TOOLS / "igam3_screen.py"}" panel', ROOT, ICON)
-        create_shortcut(menu / "Gỡ cài đặt iGam3 Screen.lnk", "powershell.exe",
+        create_shortcut(menu / "iGam3 Screen - Uninstall.lnk", "powershell.exe",
                         f'-NoProfile -ExecutionPolicy Bypass -File "{ROOT / "uninstall-windows.ps1"}"', ROOT, ICON)
-        print("Đã tạo lối tắt \"iGam3 Screen\" trong menu Start")
+        print(tr("Đã tạo lối tắt \"iGam3 Screen\" trong menu Start", "Created the \"iGam3 Screen\" shortcut in the Start menu"))
         if args.enable:
             SCREEN.set_autostart(True, now=True)
         return
@@ -926,10 +1018,12 @@ def cmd_install(args):
     DESKTOP_FILE.parent.mkdir(parents=True, exist_ok=True)
     DESKTOP_FILE.write_text(
         "[Desktop Entry]\nType=Application\nName=iGam3 Screen\n"
-        "Comment=Quản lý màn hình 3.5\" của máy iGam3\n"
+        "Comment=Manage the 3.5\" screen of the iGam3\n"
+        "Comment[vi]=Quản lý màn hình 3.5\" của máy iGam3\n"
         f"Exec={ROOT / 'igam3-screen'} panel\n"
         f"Icon={APP / 'res/icons/monitor-icon-17865/64.png'}\nCategories=Utility;\n", encoding="utf8")
-    print(f"Đã cài dịch vụ {SERVICE}, lệnh {BIN_LINK} và biểu tượng \"iGam3 Screen\" trong menu ứng dụng")
+    print(tr(f"Đã cài dịch vụ {SERVICE}, lệnh {BIN_LINK} và biểu tượng \"iGam3 Screen\" trong menu ứng dụng",
+             f"Installed the {SERVICE} service, the {BIN_LINK} command and the \"iGam3 Screen\" application icon"))
     if args.enable:
         sys.exit(SCREEN.set_autostart(True, now=True))
 
@@ -937,6 +1031,10 @@ def cmd_install(args):
 def cmd_run(_):
     """Entry point of the background screen program: shows the main screen chosen in settings.yaml"""
     os.chdir(APP)
+    # Language of the dashboard values (sensors_custom) and dates (babel), whatever the system locale says
+    os.environ["IGAM3_LANG"] = i18n.LANG
+    import babel.dates
+    babel.dates.LC_TIME = "vi_VN" if i18n.LANG == "vi" else "en_US"
     install_mirror()
     settings = load_settings()
     if settings["mode"] == "image":
@@ -945,24 +1043,25 @@ def cmd_run(_):
             stop = service_stop_event()
             lcd = open_lcd()
             frames = load_frames(path, (lcd.get_width(), lcd.get_height()), bool(settings["fill"]))
-            print(f"Màn chính: ảnh {path}", flush=True)
+            print(tr(f"Màn chính: ảnh {path}", f"Main screen: picture {path}"), flush=True)
             # A still picture stays on the screen by itself: re-send it every 10 min in case the screen was reset
             play(lcd, frames, stop, refresh_s=600)
             lcd.ScreenOff()
             return
-        print(f"Không thấy ảnh {path}: hiện bảng thông số", file=sys.stderr, flush=True)
+        print(tr(f"Không thấy ảnh {path}: hiện bảng thông số", f"Picture {path} not found: showing the dashboard"),
+              file=sys.stderr, flush=True)
     elif settings["mode"] == "console" and not WINDOWS:
         from console_mirror import run_console
         stop = service_stop_event()
         lcd = open_lcd("landscape")
-        print("Màn chính: dòng lệnh tty3", flush=True)
+        print(tr("Màn chính: dòng lệnh tty3", "Main screen: console tty3"), flush=True)
         run_console(lcd, stop, primary_ipv4, web_qr_card)
         lcd.ScreenOff()
         return
     elif settings["mode"] == "qr":
         stop = service_stop_event()
         lcd = open_lcd("landscape")
-        print("Màn chính: mã QR", flush=True)
+        print(tr("Màn chính: mã QR", "Main screen: QR code"), flush=True)
         shown, drawn_at = None, 0.0
         while not stop.is_set():
             # Follow IP / web panel changes; re-send every 10 min in case the screen was reset
@@ -986,79 +1085,112 @@ def main():
 
     parser = argparse.ArgumentParser(
         prog="igam3-screen",
-        description='Quản lý màn hình 3.5" gắn trên máy iGam3 M1 (Turing Smart Screen / TURZX)')
-    sub = parser.add_subparsers(dest="command", metavar="LỆNH")
+        description=tr('Quản lý màn hình 3.5" gắn trên máy iGam3 M1 (Turing Smart Screen / TURZX)',
+                       'Manage the built-in 3.5" screen of the iGam3 M1 (Turing Smart Screen / TURZX)'))
+    sub = parser.add_subparsers(dest="command", metavar=tr("LỆNH", "COMMAND"))
 
-    def add(name, func, help_text):
+    def add(name, func, vi, en):
+        help_text = tr(vi, en)
         p = sub.add_parser(name, help=help_text, description=help_text)
         p.set_defaults(func=func)
         return p
 
-    p = add("status", cmd_status, "xem tình trạng màn hình, dịch vụ và cấu hình")
-    p.add_argument("--json", action="store_true", help="xuất dạng JSON")
-    add("start", cmd_start, "bật màn hình chính")
-    add("stop", cmd_stop, "dừng màn hình chính (màn hình tắt)")
-    add("restart", cmd_restart, "khởi động lại màn hình chính")
-    add("enable", cmd_enable, "tự bật màn hình chính khi khởi động máy (và bật ngay)")
-    add("disable", cmd_disable, "không tự bật khi khởi động (và dừng ngay)")
-    p = add("autostart", cmd_autostart, "bật/tắt việc tự bật màn hình khi khởi động máy")
+    orientation_help = tr("hướng hiển thị (mặc định theo theme)", "orientation (default: the theme's)")
+    keep_help = tr("dùng làm màn hình chính, giữ cả khi khởi động lại", "make it the main screen, kept after a restart")
+
+    p = add("status", cmd_status, "xem tình trạng màn hình, dịch vụ và cấu hình", "show the screen, service and settings")
+    p.add_argument("--json", action="store_true", help=tr("xuất dạng JSON", "JSON output"))
+    add("start", cmd_start, "bật màn hình chính", "start the main screen")
+    add("stop", cmd_stop, "dừng màn hình chính (màn hình tắt)", "stop the main screen (the screen turns off)")
+    add("restart", cmd_restart, "khởi động lại màn hình chính", "restart the main screen")
+    add("enable", cmd_enable, "tự bật màn hình chính khi khởi động máy (và bật ngay)",
+        "start the main screen at boot (and now)")
+    add("disable", cmd_disable, "không tự bật khi khởi động (và dừng ngay)", "do not start at boot (and stop now)")
+    p = add("autostart", cmd_autostart, "bật/tắt việc tự bật màn hình khi khởi động máy",
+            "turn starting the screen at boot on or off")
     p.add_argument("state", choices=["on", "off"])
-    p = add("mode", cmd_mode, "chọn màn hình chính: stats (bảng thông số), image (ảnh), console (dòng lệnh), qr (mã QR)")
+    p = add("mode", cmd_mode, "chọn màn hình chính: stats (bảng thông số), image (ảnh), console (dòng lệnh), qr (mã QR)",
+            "choose the main screen: stats (dashboard), image (picture), console, qr (QR code)")
     p.add_argument("mode", choices=list(MODES))
-    p = add("qr", cmd_qr, "hiện mã QR để mở giao diện từ điện thoại (một lúc rồi quay lại màn hình chính)")
-    p.add_argument("--seconds", type=int, default=60, help="thời gian hiện, mặc định 60 giây")
-    p = add("shortcut", cmd_shortcut, "bật/tắt phím tắt Ctrl+Alt+Q hiện mã QR")
+    p = add("language", cmd_language, "ngôn ngữ: vi (tiếng Việt), en (English), auto (theo máy)",
+            "language: vi (Vietnamese), en (English), auto (follows the system)")
+    p.add_argument("language", choices=["vi", "en", "auto"])
+    p = add("qr", cmd_qr, "hiện mã QR để mở giao diện từ điện thoại (một lúc rồi quay lại màn hình chính)",
+            "show the QR code of the web panel for a while, then the main screen again")
+    p.add_argument("--seconds", type=int, default=60, help=tr("thời gian hiện, mặc định 60 giây", "duration, default 60 s"))
+    p = add("shortcut", cmd_shortcut, "bật/tắt phím tắt Ctrl+Alt+Q hiện mã QR", "turn the Ctrl+Alt+Q QR shortcut on or off")
     p.add_argument("state", choices=["on", "off"])
-    add("stats", lambda a: cmd_mode(argparse.Namespace(mode="stats")), "màn hình chính = bảng thông số")
+    add("stats", lambda a: cmd_mode(argparse.Namespace(mode="stats")), "màn hình chính = bảng thông số",
+        "main screen = dashboard")
     add("console", lambda a: cmd_mode(argparse.Namespace(mode="console")),
-        "màn hình chính = dòng lệnh tty3 (Linux: dùng máy không cần HDMI, cần bàn phím USB)")
-    p = add("title", cmd_title, "đổi chữ tiêu đề trên bảng thông số (theme iGam3)")
-    p.add_argument("title", help='chữ lớn, ví dụ "iGam3 M1"')
-    p.add_argument("tag", nargs="?", help='nhãn bên cạnh, ví dụ "DePIN NODE" ("" để bỏ nhãn)')
-    p = add("background", cmd_background, "đặt ảnh nền cho bảng thông số (theme iGam3)")
-    p.add_argument("file", nargs="?", help="ảnh nền (PNG/JPG)")
-    p.add_argument("--none", action="store_true", help="bỏ ảnh nền, dùng nền tối mặc định")
-    p = add("blocks", cmd_blocks, "xem / bật / tắt các khối trên bảng thông số, ví dụ: blocks ssd=off")
-    p.add_argument("changes", nargs="*", metavar="khối=on|off")
-    p = add("splash", cmd_splash, "tạo ảnh giới thiệu với chữ của anh (kiểu ảnh mẫu) và hiện lên màn hình")
-    p.add_argument("title", help="chữ lớn")
-    p.add_argument("subtitle", nargs="?", default="", help="dòng phụ")
-    p.add_argument("footer", nargs="?", default="", help="dòng cuối")
-    p.add_argument("--photo", help="ảnh làm nền (tuỳ chọn)")
-    p.add_argument("--logo", help="logo đặt ở góc phải (PNG nền trong suốt là đẹp nhất)")
-    p.add_argument("--keep", action="store_true", help="dùng làm màn hình chính, giữ cả khi khởi động lại")
-    p.add_argument("--out", help="chỉ lưu ảnh ra file này, không hiện lên màn hình")
-    add("themes", cmd_themes, 'liệt kê các theme cho màn 3.5"')
-    p = add("theme", cmd_theme, "đổi theme")
-    p.add_argument("name", help="tên theme (xem: igam3-screen themes)")
-    p = add("brightness", cmd_brightness, "đặt độ sáng 0-100")
+        "màn hình chính = dòng lệnh tty3 (Linux: dùng máy không cần HDMI, cần bàn phím USB)",
+        "main screen = console tty3 (Linux: use the computer without HDMI, with a USB keyboard)")
+    p = add("title", cmd_title, "đổi chữ tiêu đề trên bảng thông số (theme iGam3)",
+            "change the dashboard title (iGam3 theme)")
+    p.add_argument("title", help=tr('chữ lớn, ví dụ "iGam3 M1"', 'big text, for example "iGam3 M1"'))
+    p.add_argument("tag", nargs="?", help=tr('nhãn bên cạnh, ví dụ "DePIN NODE" ("" để bỏ nhãn)',
+                                             'tag next to it, for example "DePIN NODE" ("" for none)'))
+    p = add("background", cmd_background, "đặt ảnh nền cho bảng thông số (theme iGam3)",
+            "set the dashboard background picture (iGam3 theme)")
+    p.add_argument("file", nargs="?", help=tr("ảnh nền (PNG/JPG)", "background picture (PNG/JPG)"))
+    p.add_argument("--none", action="store_true", help=tr("bỏ ảnh nền, dùng nền tối mặc định", "back to the dark default"))
+    p = add("blocks", cmd_blocks, "xem / bật / tắt các khối trên bảng thông số, ví dụ: blocks ssd=off",
+            "show / turn on / turn off the dashboard blocks, for example: blocks ssd=off")
+    p.add_argument("changes", nargs="*", metavar=tr("khối=on|off", "block=on|off"))
+    p = add("splash", cmd_splash, "tạo ảnh giới thiệu với chữ của bạn và hiện lên màn hình",
+            "make a splash picture with your own text and show it")
+    p.add_argument("title", help=tr("chữ lớn", "big text"))
+    p.add_argument("subtitle", nargs="?", default="", help=tr("dòng phụ", "subtitle"))
+    p.add_argument("footer", nargs="?", default="", help=tr("dòng cuối", "bottom line"))
+    p.add_argument("--photo", help=tr("ảnh làm nền (tuỳ chọn)", "background photo (optional)"))
+    p.add_argument("--logo", help=tr("logo đặt ở góc phải (PNG nền trong suốt là đẹp nhất)",
+                                     "logo in the right corner (best: PNG with a transparent background)"))
+    p.add_argument("--keep", action="store_true", help=keep_help)
+    p.add_argument("--out", help=tr("chỉ lưu ảnh ra file này, không hiện lên màn hình",
+                                    "only save the picture to this file, do not show it"))
+    add("themes", cmd_themes, 'liệt kê các theme cho màn 3.5"', 'list the themes for the 3.5" screen')
+    p = add("theme", cmd_theme, "đổi theme", "change the theme")
+    p.add_argument("name", help=tr("tên theme (xem: igam3-screen themes)", "theme name (see: igam3-screen themes)"))
+    p = add("brightness", cmd_brightness, "đặt độ sáng 0-100", "set the brightness 0-100")
     p.add_argument("level", type=int)
-    p = add("rotate", cmd_rotate, "xoay màn hình 180° (không ghi on/off thì đảo trạng thái)")
+    p = add("rotate", cmd_rotate, "xoay màn hình 180° (không ghi on/off thì đảo trạng thái)",
+            "rotate the screen 180° (without on/off: toggle)")
     p.add_argument("state", nargs="?", choices=["on", "off"])
-    p = add("image", cmd_image, "hiển thị một ảnh (PNG/JPG/GIF động...) lên màn hình")
+    p = add("image", cmd_image, "hiển thị một ảnh (PNG/JPG/GIF động...) lên màn hình",
+            "show a picture (PNG/JPG/animated GIF...) on the screen")
     p.add_argument("file")
-    p.add_argument("--keep", action="store_true", help="dùng làm màn hình chính, giữ cả khi khởi động lại")
-    p.add_argument("--fill", action="store_true", help="phóng ảnh phủ kín màn hình (cắt bớt mép)")
-    p.add_argument("--once", action="store_true", help="GIF động: chỉ phát một lượt")
-    p.add_argument("--orientation", choices=["landscape", "portrait"], help="hướng hiển thị (mặc định theo theme)")
-    p = add("test", cmd_test, "hiện hình kiểm tra hướng màn hình")
-    p.add_argument("--orientation", choices=["landscape", "portrait"], help="hướng hiển thị (mặc định theo theme)")
-    add("off", cmd_off, "tắt màn hình")
-    add("config", cmd_config, "mở trình cấu hình gốc của turing-smart-screen-python (cần tkinter)")
-    p = add("panel", cmd_panel, "mở giao diện quản lý trên trình duyệt của máy này")
-    p.add_argument("--no-open", action="store_true", help="chỉ bật giao diện, không mở trình duyệt")
-    p = add("web", cmd_web, "mật khẩu và quyền truy cập giao diện web từ điện thoại (mạng LAN)")
-    p.add_argument("--password", action="store_true", help="đặt mật khẩu (bắt buộc trước khi mở cho mạng LAN)")
-    p.add_argument("--lan", choices=["on", "off"], help="mở / đóng giao diện cho các máy khác trong mạng LAN")
-    p = add("logs", cmd_logs, "xem nhật ký của dịch vụ")
-    p.add_argument("-n", "--lines", type=int, default=50, help="số dòng (mặc định 50)")
-    p.add_argument("-f", "--follow", action="store_true", help="theo dõi liên tục (Linux)")
-    p = add("install", cmd_install, "cài dịch vụ, lệnh igam3-screen và lối tắt trong menu")
-    p.add_argument("--enable", action="store_true", help="bật tự chạy và chạy ngay")
-    p = add("init", cmd_init, "(bộ cài dùng) dò card mạng, phần cứng và tạo theme iGam3 cho máy này")
-    p.add_argument("--title", help="chữ tiêu đề")
-    p.add_argument("--tag", help="nhãn bên cạnh tiêu đề")
-    add("run", cmd_run, "(dùng nội bộ) chạy màn hình chính ở chế độ nền")
+    p.add_argument("--keep", action="store_true", help=keep_help)
+    p.add_argument("--fill", action="store_true", help=tr("phóng ảnh phủ kín màn hình (cắt bớt mép)",
+                                                          "fill the whole screen (crops the edges)"))
+    p.add_argument("--once", action="store_true", help=tr("GIF động: chỉ phát một lượt", "animated GIF: play once"))
+    p.add_argument("--orientation", choices=["landscape", "portrait"], help=orientation_help)
+    p = add("test", cmd_test, "hiện hình kiểm tra hướng màn hình", "show a test pattern to check the orientation")
+    p.add_argument("--orientation", choices=["landscape", "portrait"], help=orientation_help)
+    add("off", cmd_off, "tắt màn hình", "turn the screen off")
+    add("config", cmd_config, "mở trình cấu hình gốc của turing-smart-screen-python (cần tkinter)",
+        "open the configuration window of turing-smart-screen-python (needs tkinter)")
+    p = add("panel", cmd_panel, "mở giao diện quản lý trên trình duyệt của máy này",
+            "open the web panel in the browser of this computer")
+    p.add_argument("--no-open", action="store_true", help=tr("chỉ bật giao diện, không mở trình duyệt",
+                                                             "start the panel without opening the browser"))
+    p = add("web", cmd_web, "mật khẩu và quyền truy cập giao diện web từ điện thoại (mạng LAN)",
+            "web panel password and access from phones (local network)")
+    p.add_argument("--password", action="store_true", help=tr("đặt mật khẩu (bắt buộc trước khi mở cho mạng LAN)",
+                                                              "set the password (required before opening it)"))
+    p.add_argument("--lan", choices=["on", "off"], help=tr("mở / đóng giao diện cho các máy khác trong mạng LAN",
+                                                           "open / close the panel to the other devices of the network"))
+    p = add("logs", cmd_logs, "xem nhật ký của dịch vụ", "show the service logs")
+    p.add_argument("-n", "--lines", type=int, default=50, help=tr("số dòng (mặc định 50)", "number of lines (default 50)"))
+    p.add_argument("-f", "--follow", action="store_true", help=tr("theo dõi liên tục (Linux)", "keep following (Linux)"))
+    p = add("install", cmd_install, "cài dịch vụ, lệnh igam3-screen và lối tắt trong menu",
+            "install the service, the igam3-screen command and the menu shortcuts")
+    p.add_argument("--enable", action="store_true", help=tr("bật tự chạy và chạy ngay", "start at boot and now"))
+    p = add("init", cmd_init, "(bộ cài dùng) dò card mạng, phần cứng và tạo theme iGam3 cho máy này",
+            "(used by the installer) detect the network cards and hardware, build the iGam3 theme")
+    p.add_argument("--title", help=tr("chữ tiêu đề", "title text"))
+    p.add_argument("--tag", help=tr("nhãn bên cạnh tiêu đề", "tag next to the title"))
+    p.add_argument("--language", choices=["vi", "en", "auto"], help=tr("ngôn ngữ", "language"))
+    add("run", cmd_run, "(dùng nội bộ) chạy màn hình chính ở chế độ nền", "(internal) run the main screen in the background")
 
     args = parser.parse_args()
     if not args.command:

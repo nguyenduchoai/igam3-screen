@@ -1,4 +1,4 @@
-# Cùng các thư viện, dạng tên==phiên bản: cài không cần Internet từ thư mục wheels/ của bộ cài Linux .run
+# The same libraries as name==version: offline install from the wheels/ folder of the Linux .run installer
 babel==2.18.0
 certifi==2026.7.22
 charset-normalizer==3.5.1

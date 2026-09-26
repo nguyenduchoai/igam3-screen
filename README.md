@@ -1,69 +1,70 @@
 # igam3-screen
 
-Quản lý **màn hình 3.5" gắn trên máy iGam3 M1** (DePIN / Edge AI node) khi cài **Ubuntu**, và thử nghiệm trên **Windows**:
-bảng thông số máy, ảnh cố định, mã QR, dòng lệnh, cùng giao diện quản lý trên trình duyệt (dùng được cả từ điện thoại).
+**English** · [Tiếng Việt](README.vi.md)
 
-> *English summary: a manager for the built-in 3.5" USB screen (Turing Smart Screen / TURZX, USB `1a86:5722`) of the
-> iGam3 M1 mini PC. It shows a system dashboard, a picture, a QR code or a text console, has a web control panel,
-> installs as a single offline `.run` file on Ubuntu, and has an experimental Windows installer. Built on
-> [turing-smart-screen-python](https://github.com/mathoudebine/turing-smart-screen-python). Documentation is in Vietnamese.*
+Manager for the **3.5" screen built into the iGam3 M1** (DePIN / Edge AI node) on **Ubuntu**, with an experimental
+**Windows** version: system dashboard, fixed picture, QR code or text console, plus a web control panel that also works
+from a phone.
 
-<p align="center"><img src="docs/dashboard.png" width="480" alt="Bảng thông số trên màn 3.5 inch"></p>
+<p align="center"><img src="docs/dashboard.png" width="480" alt="Dashboard on the 3.5 inch screen"></p>
 
-App gốc của hãng màn hình (TURZX) chỉ có bản Windows. Dự án này dùng thư viện mã nguồn mở
-[turing-smart-screen-python](https://github.com/mathoudebine/turing-smart-screen-python) để điều khiển màn trên Linux,
-rồi thêm theme, công cụ quản lý và bộ cài riêng cho iGam3.
+The screen maker's own app (TURZX) only exists for Windows. This project drives the screen on Linux with the open source
+[turing-smart-screen-python](https://github.com/mathoudebine/turing-smart-screen-python) library, and adds a theme,
+management tools and installers made for the iGam3.
 
-## Tính năng
+## Features
 
-- **Bảng thông số** tiếng Việt: CPU (%, nhiệt độ, xung), RAM, SSD, tốc độ Wi-Fi/LAN, IP, thời gian chạy, ping, ngày giờ.
-  **Bật/tắt từng khối**, bố cục tự dàn lại; đổi **tiêu đề**, **nhãn**, **ảnh nền**; kèm 38 theme 3.5" khác có sẵn.
-- **4 kiểu màn hình chính**, giữ nguyên sau khi khởi động lại: bảng thông số, ảnh cố định (PNG/JPG/GIF), mã QR, dòng lệnh.
-- **Ảnh giới thiệu**: tạo ảnh có chữ của anh, kèm logo hoặc ảnh nền.
-- **Giao diện quản lý web**: xem trực tiếp màn nhỏ đang hiện gì, bật/tắt, đổi mọi thứ ở trên. Mở cho điện thoại
-  trong mạng LAN (có mật khẩu) khi anh muốn.
-- **Mã QR** trên màn nhỏ để mở giao diện từ điện thoại, và phím tắt **Ctrl+Alt+Q**.
-- **Chế độ Dòng lệnh** (Linux): dùng máy không cần màn HDMI, cắm bàn phím USB rồi đăng nhập ngay trên màn nhỏ.
-- **Bộ cài một file** cho Ubuntu, cài được không cần Internet; chạy lại là nâng cấp mà vẫn giữ cấu hình.
+- **Dashboard**: CPU (%, temperature, clock speed), RAM, SSD, Wi-Fi/LAN speed, IP address, uptime, ping, date and time.
+  **Turn each block on or off** and the layout rearranges itself; change the **title**, **tag** and **background
+  picture**; 38 other 3.5" themes are included.
+- **4 kinds of main screen**, kept after a restart: dashboard, fixed picture (PNG/JPG/GIF), QR code, text console.
+- **Splash pictures**: make a picture with your own text, logo or photo.
+- **Web control panel**: see live what the small screen shows, turn it on or off and change everything above. Open it
+  to phones on your local network (with a password) when you want to.
+- **QR code** on the small screen to open the panel from a phone, and a **Ctrl+Alt+Q** shortcut.
+- **Console mode** (Linux): use the computer without an HDMI monitor, with a USB keyboard and the small screen.
+- **English and Vietnamese**, following the language of the system.
+- **One-file installer** for Ubuntu that works without Internet; running it again upgrades and keeps your settings.
 
-<p align="center"><img src="docs/layouts.png" width="720" alt="Bố cục thay đổi theo các khối bật/tắt"></p>
-<p align="center"><img src="docs/modes.png" width="900" alt="Mã QR và chế độ dòng lệnh"></p>
+<p align="center"><img src="docs/layouts.png" width="720" alt="The layout follows the blocks turned on"></p>
+<p align="center"><img src="docs/modes.png" width="900" alt="QR code and console mode"></p>
 
-## Phần cứng
+## Hardware
 
 | | |
 |---|---|
-| Máy | iGam3 M1 (Intel N100, 16 GB RAM, SSD 512 GB). Máy mini PC khác gắn cùng loại màn cũng dùng được |
-| Màn hình | Turing Smart Screen 3.5" / TURZX "UsbMonitor", USB `1a86:5722`, 320×480, loại "revision A" |
-| Hệ điều hành | Ubuntu (đã chạy thật trên Ubuntu 26.04, Python 3.14). Windows 10/11: **thử nghiệm** |
+| Computer | iGam3 M1 (Intel N100, 16 GB RAM, 512 GB SSD). Other mini PCs with the same screen work too |
+| Screen | Turing Smart Screen 3.5" / TURZX "UsbMonitor", USB `1a86:5722`, 320×480, "revision A" |
+| System | Ubuntu (tested on Ubuntu 26.04, Python 3.14). Windows 10/11: **experimental** |
 
-Kiểm tra máy có đúng loại màn này không (Ubuntu):
+Check that the computer has this screen (Ubuntu):
 
 ```bash
 lsusb -d 1a86:5722
 ```
 
-Kết quả có dòng `QinHeng Electronics UsbMonitor` là đúng.
+A line with `QinHeng Electronics UsbMonitor` means it does.
 
-## Cài trên Ubuntu
+## Install on Ubuntu
 
-### Cách 1: bộ cài một file (khuyên dùng, không cần Internet)
+### Option 1: one-file installer (recommended, no Internet needed)
 
-1. Vào trang [Releases](https://github.com/nguyenduchoai/igam3-screen/releases), tải file `igam3-screen-installer-<phiên bản>.run`.
-2. Mở Terminal bằng **tài khoản thường** (không gõ `sudo`) và chạy:
+1. Download `igam3-screen-installer-<version>.run` from the
+   [Releases](https://github.com/nguyenduchoai/igam3-screen/releases) page.
+2. Open a terminal as your **normal user** (do not type `sudo`) and run:
    ```bash
-   bash igam3-screen-installer-1.0.0.run
+   bash igam3-screen-installer-1.1.0.run
    ```
-   Có thể đặt sẵn tiêu đề:
+   You can set the title and the language right away:
    ```bash
-   bash igam3-screen-installer-1.0.0.run --title "Tên máy" --tag "DePIN NODE"
+   bash igam3-screen-installer-1.1.0.run --title "My node" --tag "DePIN NODE" --lang en
    ```
-3. Nhập mật khẩu sudo khi được hỏi. Khoảng 10 giây sau, màn nhỏ hiện bảng thông số.
+3. Type your sudo password when asked. About 10 seconds later the small screen shows the dashboard.
 
-Thư viện Python đóng gói sẵn trong file `.run` dành cho Python 3.14 (Ubuntu 26.04). Nếu Python của máy khác phiên bản,
-bộ cài tự tải thư viện từ Internet.
+The Python libraries bundled in the `.run` file are built for Python 3.14 (Ubuntu 26.04). With another Python version the
+installer downloads them from the Internet instead.
 
-### Cách 2: từ mã nguồn (cần Internet)
+### Option 2: from the source code (needs Internet)
 
 ```bash
 sudo apt install git
@@ -71,189 +72,208 @@ git clone https://github.com/nguyenduchoai/igam3-screen.git
 bash igam3-screen/install.sh
 ```
 
-### Bộ cài làm những gì
+### What the installer does
 
-- Chép chương trình vào `~/igam3-screen` (đổi bằng `--dir`).
-- Tạo môi trường Python riêng, không đụng tới Python của hệ thống.
-- Dò card mạng và phần cứng (tên CPU, RAM, ổ đĩa) để ghi lên bảng thông số.
-- Cài dịch vụ tự chạy, lệnh `igam3-screen`, biểu tượng **iGam3 Screen** trong menu và phím tắt Ctrl+Alt+Q.
-- Chạy `setup-root.sh` (cần sudo). Script này:
-  - thêm quy tắc udev để tài khoản mở được màn, đồng thời báo ModemManager không dò màn này như modem;
-  - thêm tài khoản vào nhóm `dialout` và `tty`;
-  - bật `loginctl enable-linger` để màn chạy từ lúc khởi động, kể cả khi chưa đăng nhập;
-  - cài `python3-tk` cho trình cấu hình gốc.
+- Copies the program to `~/igam3-screen` (change it with `--dir`).
+- Creates its own Python environment, without touching the system Python.
+- Detects the network cards and the hardware (CPU name, RAM, disk) shown on the dashboard.
+- Installs the background service, the `igam3-screen` command, the **iGam3 Screen** icon in the application menu and
+  the Ctrl+Alt+Q shortcut.
+- Runs `setup-root.sh` (needs sudo), which:
+  - adds a udev rule so that your account can open the screen, and tells ModemManager not to probe it as a modem;
+  - adds your account to the `dialout` and `tty` groups;
+  - enables `loginctl enable-linger`, so the screen starts at boot, even before anyone logs in;
+  - installs `python3-tk` for the configuration window of turing-smart-screen-python.
 
-Tuỳ chọn khác: `--skip-root` (bỏ bước sudo), `--skip-service` (chỉ chép và chuẩn bị Python), `--help`.
+Other options: `--skip-root` (skip the sudo step), `--skip-service` (only copy the program and prepare Python), `--help`.
 
-## Cài trên Windows (thử nghiệm)
+## Install on Windows (experimental)
 
-> Bản Windows **chưa được chạy thử trên máy Windows thật**. Nếu gặp lỗi, anh mở một issue kèm nội dung cửa sổ cài đặt.
+> The Windows version **has not been tested on a real Windows computer yet**. If something fails, please open an issue
+> with the text of the installer window.
 
-1. Tải `igam3-screen-windows-<phiên bản>.zip` ở trang [Releases](https://github.com/nguyenduchoai/igam3-screen/releases)
-   và giải nén.
-2. **Tắt app TURZX** nếu đang chạy, và bỏ nó khỏi mục khởi động (Startup). App này chiếm cổng COM của màn hình.
-3. Nháy đúp **`install-windows.cmd`**.
-   - Máy chưa có Python 3.11+: bộ cài đề nghị cài Python 3.13 bằng `winget`, hoặc anh tự cài từ
-     [python.org](https://www.python.org/downloads/) (tick *Add python.exe to PATH*).
-   - Bộ cài cần Internet để tải thư viện Python.
-4. Xong: màn nhỏ hiện bảng thông số. Menu Start có **iGam3 Screen** (giao diện quản lý) và mục gỡ cài đặt.
-   Ctrl+Alt+Q hiện mã QR. Mở cửa sổ lệnh mới là dùng được lệnh `igam3-screen`.
+1. Download `igam3-screen-windows-<version>.zip` from the
+   [Releases](https://github.com/nguyenduchoai/igam3-screen/releases) page and extract it.
+2. **Close the TURZX app** if it is running, and remove it from Startup: it holds the COM port of the screen.
+3. Double-click **`install-windows.cmd`**.
+   - Without Python 3.11 or newer, the installer offers to install Python 3.13 with `winget`. You can also install it
+     yourself from [python.org](https://www.python.org/downloads/) (tick *Add python.exe to PATH*).
+   - The installer needs the Internet to download the Python libraries.
+4. Done: the small screen shows the dashboard. The Start menu has **iGam3 Screen** (the web panel) and an uninstall
+   entry. Ctrl+Alt+Q shows the QR code. New terminal windows have the `igam3-screen` command.
 
-Khác biệt so với Ubuntu:
-- **Không có chế độ Dòng lệnh.**
-- **Không đọc nhiệt độ CPU**, vì Windows cần quyền admin cho việc này.
-- **Ping đo bằng kết nối TCP**, vì ping thật cần quyền admin.
-- Lần đầu mở giao diện cho mạng LAN, Windows có thể hỏi cho phép Python dùng mạng: chọn *Private networks*.
+Differences with Ubuntu:
+- **No console mode.**
+- **No CPU temperature**: Windows only gives it to administrator programs.
+- **Ping is measured with a TCP connection**, since a real ping needs administrator rights.
+- The first time the panel is opened to the local network, Windows may ask whether Python may use the network: allow it
+  for *Private networks*.
 
-## Sử dụng
+## Usage
 
-### Giao diện quản lý
+### Web panel
 
-Mở bằng biểu tượng **iGam3 Screen**, hoặc chạy `igam3-screen panel`, rồi vào http://localhost:8686.
-Mặc định giao diện **chỉ mở được trên chính máy đó** và tự tắt sau 30 phút không dùng.
+Open it with the **iGam3 Screen** icon, or run `igam3-screen panel`, then go to http://localhost:8686.
+By default the panel **only opens on the computer itself** and stops after 30 minutes without use.
 
-<p align="center"><img src="docs/web-panel.png" width="720" alt="Giao diện quản lý trên trình duyệt"></p>
+<p align="center"><img src="docs/web-panel.png" width="720" alt="Web control panel"></p>
 
-### Dùng từ điện thoại (mạng LAN)
+### From a phone (local network)
 
-Khi muốn quản lý từ điện thoại, ví dụ lúc máy không cắm HDMI, anh tự bật:
+To manage the screen from a phone, for example when no HDMI monitor is connected, turn it on yourself:
 
 ```bash
 igam3-screen web --password
 igam3-screen web --lan on
 ```
 
-Trên điện thoại cùng Wi-Fi, vào `http://<IP của máy>:8686` (hoặc quét mã QR trên màn nhỏ). Tên đăng nhập gõ gì cũng được,
-mật khẩu là mật khẩu vừa đặt. Đóng lại bằng `igam3-screen web --lan off`.
+On a phone on the same Wi-Fi, go to `http://<IP of the computer>:8686` (or scan the QR code on the small screen). Any
+user name works, the password is the one you just set. Close it with `igam3-screen web --lan off`.
 
-Giao diện dùng HTTP thường, chỉ nên dùng trong mạng nhà hoặc văn phòng tin cậy. Đừng mở cổng 8686 ra Internet trên router.
-Mật khẩu lưu dạng băm (PBKDF2) trong `web.yaml`. Giao diện chặn các yêu cầu giả mạo gửi từ trang web khác.
+The panel uses plain HTTP: only use it on a home or office network you trust, and never forward port 8686 to the
+Internet on your router. The password is stored hashed (PBKDF2) in `web.yaml`, and the panel refuses requests forged by
+other web sites.
 
-<p align="center"><img src="docs/web-panel-mobile.png" width="260" alt="Giao diện trên điện thoại"></p>
+<p align="center"><img src="docs/web-panel-mobile.png" width="260" alt="Web panel on a phone"></p>
 
-### Màn hình chính
+### Main screen
 
-| Lệnh | Màn nhỏ hiện |
+| Command | The small screen shows |
 |---|---|
-| `igam3-screen mode stats` | bảng thông số |
-| `igam3-screen image anh.png --keep` | ảnh cố định (PNG/JPG, GIF động). `--fill` để phủ kín màn |
-| `igam3-screen mode qr` | mã QR mở giao diện quản lý |
-| `igam3-screen mode console` | dòng lệnh tty3 (chỉ Linux) |
+| `igam3-screen mode stats` | the dashboard |
+| `igam3-screen image picture.png --keep` | a fixed picture (PNG/JPG, animated GIF). `--fill` fills the whole screen |
+| `igam3-screen mode qr` | a QR code that opens the web panel |
+| `igam3-screen mode console` | the text console tty3 (Linux only) |
 
-`igam3-screen image anh.png` (không có `--keep`) chỉ hiện ảnh tạm thời; `igam3-screen start` để quay lại màn hình chính.
-Mỗi lần vẽ kín màn mất khoảng 2 giây, nên GIF động chạy chậm (khoảng 0,5 khung hình mỗi giây).
+`igam3-screen image picture.png` (without `--keep`) only shows the picture for now; `igam3-screen start` goes back to the
+main screen. Drawing the whole screen takes about 2 seconds, so animated GIFs play slowly (about 0.5 frame per second).
 
-### Bảng thông số
+### Dashboard
 
 ```bash
-igam3-screen title "Tên máy" "DePIN NODE"   # chữ lớn + nhãn ("" để bỏ nhãn)
-igam3-screen blocks ssd=off network=off     # tắt khối; các khối: clock hostname cpu ram ssd network system
-igam3-screen background ~/Ảnh/nen.jpg       # ảnh nền; --none để bỏ
-igam3-screen themes                         # 38 theme 3.5" khác
+igam3-screen title "My node" "DePIN NODE"   # big text + tag ("" for no tag)
+igam3-screen blocks ssd=off network=off     # blocks: clock hostname cpu ram ssd network system
+igam3-screen background ~/Pictures/bg.jpg   # background picture; --none removes it
+igam3-screen themes                         # 38 other 3.5" themes
 igam3-screen theme LandscapeEarth
-igam3-screen brightness 50                  # độ sáng 0-100 (màn này nóng nếu để quá sáng)
-igam3-screen rotate                         # xoay 180°
+igam3-screen brightness 50                  # 0-100 (this screen gets hot when very bright)
+igam3-screen rotate                         # rotate 180°
 ```
 
-Tắt hết các ô số liệu mà vẫn bật Đồng hồ thì màn thành đồng hồ lớn.
+With every data block off and the clock on, the screen becomes a big clock.
 
-### Ảnh giới thiệu
+### Splash picture
 
 ```bash
-igam3-screen splash "Tên công ty" "Nút mạng DePIN" "www.tencongty.vn" --logo ~/Ảnh/logo.png --keep
+igam3-screen splash "Your Company" "DePIN node" "www.example.com" --logo ~/Pictures/logo.png --keep
 ```
 
-Chữ quá dài sẽ tự thu nhỏ hoặc xuống 2 dòng. Thêm `--photo anh.jpg` để dùng ảnh làm nền.
-Bỏ `--keep` thì chỉ xem thử trên màn.
+Long text shrinks or wraps onto two lines by itself. Add `--photo photo.jpg` for a photo background.
+Without `--keep` the picture is only shown for now.
 
-<p align="center"><img src="docs/splash.png" width="900" alt="Ảnh giới thiệu"></p>
+<p align="center"><img src="docs/splash.png" width="900" alt="Splash pictures"></p>
 
-### Mã QR và phím tắt
+### Language
 
-- **Ctrl+Alt+Q** (hoặc lệnh `igam3-screen qr`): hiện mã QR 1 phút rồi quay lại màn chính.
-  Trên Ubuntu, phím này chỉ chạy khi đã đăng nhập desktop.
-- **Ctrl+Alt+F3**: mở dòng lệnh tty3. Khi màn chính là Dòng lệnh, nó hiện trên màn nhỏ. **Ctrl+Alt+F2** về desktop.
+The dashboard, the web panel, the commands and the installers are in **English** or **Vietnamese**. By default they
+follow the language of the system: Vietnamese on a Vietnamese system, English everywhere else. To choose:
 
-Mã QR chỉ dùng được khi giao diện đã mở cho mạng LAN. Mã tự đổi khi IP của máy đổi.
+```bash
+igam3-screen language en      # or vi, or auto (follow the system)
+```
 
-### Dùng máy không cần màn HDMI (Linux)
+or use the selector at the top of the web panel. The installers take `--lang en|vi` (`-Lang` on Windows).
 
-Màn 3.5" là màn phụ cắm USB, không phải màn HDMI. Nó không hiện được desktop, BIOS hay quá trình khởi động, và chỉ sáng
-khi dịch vụ đã chạy (khoảng 10–15 giây sau khi bật máy). Có hai cách dùng máy khi không có màn HDMI:
-- **Chế độ Dòng lệnh**: `igam3-screen mode console`. Cắm bàn phím USB, bấm Ctrl+Alt+F3, đăng nhập và gõ lệnh ngay trên
-  màn nhỏ (60 cột × 19 dòng). Màn chờ của chế độ này có mã QR.
-- **Giao diện web từ điện thoại**, ở chế độ mạng LAN.
+### QR code and shortcuts
 
-### Bảng lệnh
+- **Ctrl+Alt+Q** (or `igam3-screen qr`): shows the QR code for 1 minute, then the main screen again.
+  On Ubuntu this shortcut works once you are logged in to the desktop.
+- **Ctrl+Alt+F3**: opens the text console tty3, which appears on the small screen in console mode.
+  **Ctrl+Alt+F2** goes back to the desktop.
 
-| Lệnh | Việc làm |
+The QR code only works once the panel is open to the local network. It follows IP address changes.
+
+### Without an HDMI monitor (Linux)
+
+The 3.5" screen is a USB device, not an HDMI monitor: it cannot show the desktop, the BIOS or the boot, and it only
+lights up once the service runs (10–15 seconds after power on). Two ways to use the computer without a monitor:
+- **Console mode**: `igam3-screen mode console`. Plug in a USB keyboard, press Ctrl+Alt+F3, log in and type commands
+  on the small screen (60 columns × 19 rows). Its waiting screen has a QR code.
+- **The web panel from a phone**, in local network mode.
+
+### Commands
+
+| Command | Does |
 |---|---|
-| `igam3-screen status` | tình trạng màn, dịch vụ, cấu hình |
-| `igam3-screen start` / `stop` / `restart` | bật / tắt / khởi động lại màn chính |
-| `igam3-screen enable` / `disable` | bật / tắt tự chạy khi khởi động (và bật/tắt ngay) |
-| `igam3-screen panel` | mở giao diện quản lý |
-| `igam3-screen web --password` / `--lan on\|off` | mật khẩu, mở/đóng giao diện cho mạng LAN |
-| `igam3-screen test` | hình kiểm tra hướng màn (mũi tên phải chỉ lên) |
-| `igam3-screen off` | tắt màn |
-| `igam3-screen config` | trình cấu hình gốc của turing-smart-screen-python |
-| `igam3-screen logs -f` | xem nhật ký |
-| `igam3-screen --help` | toàn bộ lệnh |
+| `igam3-screen status` | screen, service and settings |
+| `igam3-screen start` / `stop` / `restart` | start / stop / restart the main screen |
+| `igam3-screen enable` / `disable` | start at boot on / off (and start / stop now) |
+| `igam3-screen panel` | open the web panel |
+| `igam3-screen web --password` / `--lan on\|off` | password, open / close the panel to the local network |
+| `igam3-screen language en\|vi\|auto` | language |
+| `igam3-screen test` | orientation test pattern (the arrow must point up) |
+| `igam3-screen off` | turn the screen off |
+| `igam3-screen config` | configuration window of turing-smart-screen-python |
+| `igam3-screen logs -f` | logs |
+| `igam3-screen --help` | every command |
 
-Trước lần đăng nhập đầu tiên sau khi cài, lệnh `igam3-screen` chưa có trong PATH: gọi `~/igam3-screen/igam3-screen`.
+Until your next login after installing, the `igam3-screen` command is not in the PATH yet: use `~/igam3-screen/igam3-screen`.
 
-## Nâng cấp và gỡ bỏ
+## Upgrade and uninstall
 
-- **Nâng cấp**: chạy bộ cài bản mới. Cấu hình, tiêu đề, ảnh và mật khẩu web của máy được giữ nguyên.
-- **Gỡ trên Ubuntu**: chạy lệnh dưới đây. Việc thêm vào nhóm `dialout`/`tty` và linger được giữ lại.
+- **Upgrade**: run the installer of the new version. The settings, title, pictures and web password are kept.
+- **Uninstall on Ubuntu**: run the command below. The `dialout`/`tty` group membership and linger are left as they are.
   ```bash
   bash ~/igam3-screen/uninstall.sh
   ```
-- **Gỡ trên Windows**: menu Start > iGam3 Screen > *Gỡ cài đặt iGam3 Screen*.
+- **Uninstall on Windows**: Start menu > iGam3 Screen > *iGam3 Screen - Uninstall*.
 
-## Xử lý sự cố
+## Troubleshooting
 
-| Hiện tượng | Cách xử lý |
+| Problem | What to do |
 |---|---|
-| Màn không sáng | `igam3-screen status`. Nếu báo "CHƯA CÓ QUYỀN", chạy `sudo ~/igam3-screen/setup-root.sh` rồi khởi động lại máy |
-| Hình lộn ngược | `igam3-screen rotate` |
-| Màn tối hoặc quá sáng | `igam3-screen brightness 50` |
-| Không thấy màn | `lsusb -d 1a86:5722`; thử rút cắm lại cáp USB bên trong (nếu có) hoặc khởi động lại máy |
-| Windows: màn không chạy | tắt app TURZX; xem Device Manager > Ports (COM & LPT); `igam3-screen logs` |
-| Điện thoại không vào được | máy và điện thoại cùng mạng? `igam3-screen web` xem đã mở LAN chưa; IP có thể đã đổi (xem ô MẠNG trên màn) |
-| Xem lỗi chi tiết | `igam3-screen logs -n 100` |
+| The screen stays dark | `igam3-screen status`. If it says "NO PERMISSION", run `sudo ~/igam3-screen/setup-root.sh` and restart the computer |
+| Upside down | `igam3-screen rotate` |
+| Too dark or too bright | `igam3-screen brightness 50` |
+| Screen not found | `lsusb -d 1a86:5722`; reconnect the internal USB cable if there is one, or restart the computer |
+| Windows: the screen does not start | close the TURZX app; check Device Manager > Ports (COM & LPT); `igam3-screen logs` |
+| The phone cannot connect | same network? `igam3-screen web` tells whether the panel is open; the IP may have changed (see the NETWORK block) |
+| Details of an error | `igam3-screen logs -n 100` |
 
-## Cấu trúc
+## Project layout
 
-| Đường dẫn | Nội dung |
+| Path | Content |
 |---|---|
-| `app/` | phần cần cho màn 3.5" của turing-smart-screen-python 3.10.0, theme `iGam3`, số liệu riêng trong `library/sensors/sensors_custom.py` |
-| `app/res/themes/iGam3/make_theme.py` | bố cục và màu của theme iGam3 (tạo `background.png`, `theme.yaml` từ `custom.yaml`) |
-| `tools/igam3_screen.py` | lệnh `igam3-screen` |
-| `tools/web_panel.py`, `tools/web/` | giao diện quản lý |
-| `tools/console_mirror.py`, `tools/qr_screen.py`, `tools/make_splash.py` | chế độ Dòng lệnh, màn QR, ảnh giới thiệu |
-| `tools/platform_support.py` | phần khác nhau giữa Linux (systemd) và Windows |
-| `install.sh`, `setup-root.sh`, `uninstall.sh` | cài / cấp quyền / gỡ trên Ubuntu |
-| `install-windows.cmd`, `install-windows.ps1`, `uninstall-windows.ps1` | cài / gỡ trên Windows |
-| `packaging/` | đóng gói bộ cài |
+| `app/` | what the 3.5" screen needs from turing-smart-screen-python 3.10.0, the `iGam3` theme, extra data sources in `library/sensors/sensors_custom.py` |
+| `app/res/themes/iGam3/make_theme.py` | layout and colours of the iGam3 theme (makes `background.png` and `theme.yaml` from `custom.yaml`) |
+| `tools/igam3_screen.py` | the `igam3-screen` command |
+| `tools/web_panel.py`, `tools/web/` | the web panel |
+| `tools/console_mirror.py`, `tools/qr_screen.py`, `tools/make_splash.py` | console mode, QR screen, splash pictures |
+| `tools/i18n.py` | English / Vietnamese |
+| `tools/platform_support.py` | what differs between Linux (systemd) and Windows |
+| `install.sh`, `setup-root.sh`, `uninstall.sh` | install / permissions / uninstall on Ubuntu |
+| `install-windows.cmd`, `install-windows.ps1`, `uninstall-windows.ps1` | install / uninstall on Windows |
+| `packaging/` | builds the installers |
 
-Mỗi máy tự tạo các file riêng sau (không nằm trong git): `settings.yaml` (màn chính), `web.yaml` (mật khẩu), `images/`,
-`app/config.yaml` (đã sửa), `app/res/themes/iGam3/custom.yaml`.
+Each computer creates these files for itself (not in git): `settings.yaml` (main screen, language), `web.yaml`
+(password), `images/`, `app/config.yaml` (modified), `app/res/themes/iGam3/custom.yaml`.
 
-## Đóng gói và phát hành
+## Building a release
 
-Trên máy Ubuntu đã cài và chạy ổn, tăng số trong `VERSION` rồi chạy:
+On an Ubuntu computer where igam3-screen is installed and works, raise the number in `VERSION` and run:
 
 ```bash
 bash packaging/build.sh
 ```
 
-Lệnh này tạo `dist/igam3-screen-installer-<VERSION>.run` (Linux, kèm thư viện) và `dist/igam3-screen-windows-<VERSION>.zip`.
-Đưa hai file đó lên một bản phát hành trên GitHub (Releases), ví dụ bằng
-[GitHub CLI](https://cli.github.com/): `gh release create v1.0.0 dist/*`.
+This makes `dist/igam3-screen-installer-<VERSION>.run` (Linux, libraries included) and
+`dist/igam3-screen-windows-<VERSION>.zip`. Publish both as a GitHub release, for example with the
+[GitHub CLI](https://cli.github.com/): `gh release create v1.1.0 dist/*`.
 
-## Giấy phép và ghi công
+## License and credits
 
-- Phát hành theo **GPL-3.0-or-later** (file [LICENSE](LICENSE)), vì dùng và kèm theo
-  [turing-smart-screen-python](https://github.com/mathoudebine/turing-smart-screen-python) © Matthieu Houdebine và cộng sự.
-- Font Roboto / Roboto Mono (Apache-2.0), JetBrains Mono / Generale Mono (SIL OFL-1.1). Xem [NOTICE](NOTICE).
-- Dự án cộng đồng, **không liên kết** với iG3 / Gam3 Labs hay TURZX. Các tên này thuộc về chủ sở hữu tương ứng.
+- Released under **GPL-3.0-or-later** ([LICENSE](LICENSE)), since it uses and ships
+  [turing-smart-screen-python](https://github.com/mathoudebine/turing-smart-screen-python) © Matthieu Houdebine and
+  contributors.
+- Fonts: Roboto / Roboto Mono (Apache-2.0), JetBrains Mono / Generale Mono (SIL OFL-1.1). See [NOTICE](NOTICE).
+- Community project, **not affiliated** with iG3 / Gam3 Labs or TURZX. These names belong to their owners.

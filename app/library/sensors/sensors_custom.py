@@ -114,6 +114,8 @@ import psutil
 
 psutil.cpu_percent(interval=None)  # the first call always returns 0.0: take it now, not on screen
 SYSTEM_DISK = Path.home().anchor if os.name == "nt" else "/"  # C:\ on Windows
+# Vietnamese or English: set by igam3-screen (IGAM3_LANG), else the language of the system
+VI = os.environ.get("IGAM3_LANG", "vi" if os.environ.get("LANG", "").lower().startswith("vi") else "en") == "vi"
 
 
 def _gib(n_bytes: float) -> str:
@@ -235,7 +237,7 @@ class Igam3Uptime(CustomDataSource):
         hours, rest = divmod(rest, 3600)
         minutes, seconds = divmod(rest, 60)
         if days:
-            return f"{days} ngày {hours:02d}:{minutes:02d}"
+            return f"{days} ngày {hours:02d}:{minutes:02d}" if VI else f"{days}d {hours:02d}:{minutes:02d}"
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
     def last_values(self) -> List[float]:
@@ -247,7 +249,7 @@ class Igam3Ip(CustomDataSource):
         pass
 
     def as_string(self) -> str:
-        return primary_ipv4() or "Không có mạng"
+        return primary_ipv4() or ("Không có mạng" if VI else "No network")
 
     def last_values(self) -> List[float]:
         pass
@@ -326,7 +328,7 @@ class Igam3Ping(CustomDataSource):
         if (delay is None or delay is False) and os.name == "nt":
             delay = _tcp_delay_ms(host)
         if delay is None or delay is False:
-            return "Mất kết nối"
+            return "Mất kết nối" if VI else "No connection"
         return f"{delay:.0f} ms"
 
     def last_values(self) -> List[float]:

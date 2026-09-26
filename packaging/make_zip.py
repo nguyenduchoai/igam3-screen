@@ -1,4 +1,4 @@
-# Gói .zip cho Windows từ thư mục đã chuẩn bị: <parent>/igam3-screen -> <out>.zip
+# Windows .zip package from the staged folder: <parent>/igam3-screen -> <out>.zip
 # Usage: make_zip.py <parent dir> <out.zip>
 import sys
 import zipfile
@@ -14,4 +14,4 @@ with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
         if path.suffix in (".cmd", ".ps1"):
             data = data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")  # Windows line endings
         zf.writestr(str(path.relative_to(parent)), data)
-print(f"{out.name}: {sum(1 for _ in zipfile.ZipFile(out).namelist())} file")
+print(f"{out.name}: {sum(1 for _ in zipfile.ZipFile(out).namelist())} files")

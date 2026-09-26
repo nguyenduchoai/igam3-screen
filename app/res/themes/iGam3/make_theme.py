@@ -5,7 +5,9 @@
 # (edited by 'igam3-screen title / background / blocks' or the web panel).
 # Run from anywhere:  ~/igam3-screen/.venv/bin/python ~/igam3-screen/app/res/themes/iGam3/make_theme.py
 # Values marked "Igam3..." come from library/sensors/sensors_custom.py
+# Labels are Vietnamese or English: 'igam3-screen' passes its language, a standalone run uses IGAM3_LANG / LANG.
 
+import os
 from pathlib import Path
 
 import yaml
@@ -15,16 +17,39 @@ THEME_DIR = Path(__file__).resolve().parent
 FONTS = THEME_DIR.parent.parent / "fonts"
 CUSTOM_FILE = THEME_DIR / "custom.yaml"
 
-# Blocks that can be switched on/off, with the names shown by the CLI and the web panel
+# Blocks that can be switched on/off, with their names (Vietnamese, English) for the CLI and the web panel
 BLOCKS = {
-    "clock": "Đồng hồ",
-    "hostname": "Tên máy",
-    "cpu": "CPU",
-    "ram": "RAM",
-    "ssd": "SSD",
-    "network": "Mạng",
-    "system": "Hệ thống",
+    "clock": ("Đồng hồ", "Clock"),
+    "hostname": ("Tên máy", "Hostname"),
+    "cpu": ("CPU", "CPU"),
+    "ram": ("RAM", "RAM"),
+    "ssd": ("SSD", "SSD"),
+    "network": ("Mạng", "Network"),
+    "system": ("Hệ thống", "System"),
 }
+LABELS = {  # words drawn on the dashboard
+    "network": ("MẠNG", "NETWORK"),
+    "system": ("HỆ THỐNG", "SYSTEM"),
+    "uptime": ("Thời gian chạy", "Uptime"),
+    "ping": ("Ping", "Ping"),
+}
+DATE_FORMATS = {"vi": "EEEE, dd/MM/yyyy", "en": "EEE, d MMM yyyy"}  # Thứ Bảy, 26/09/2026 - Sat, 26 Sep 2026
+
+
+def current_language():
+    forced = os.environ.get("IGAM3_LANG")
+    if forced in ("vi", "en"):
+        return forced
+    return "vi" if os.environ.get("LANG", "").lower().startswith("vi") else "en"
+
+
+def block_labels(lang):
+    return {key: names[0 if lang == "vi" else 1] for key, names in BLOCKS.items()}
+
+
+def label(key, lang):
+    return LABELS[key][0 if lang == "vi" else 1]
+
 
 W, H = 480, 320
 SS = 4  # supersampling factor for smooth shapes
@@ -76,7 +101,6 @@ RAM_SIZES_GB = (1, 2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256)
 
 def hardware_labels():
     """Subtitles of the CPU / RAM / SSD panels, read from the machine the theme is generated on"""
-    import os
     import re
     import psutil
     labels = {"cpu": "", "ram": "", "ssd": ""}
@@ -194,7 +218,7 @@ def draw_header(d, title, tag, max_x):
         d.text((x + pill_w / 2, 18), tag, font=tag_font, fill=CYAN, anchor="mm")
 
 
-def draw_background(custom, layout):
+def draw_background(custom, layout, lang="vi"):
     # Shapes at SS x resolution on a transparent layer, composited over the base, then downscaled for anti-aliasing
     base, panel_alpha = base_layer(custom)
     overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
@@ -231,15 +255,15 @@ def draw_background(custom, layout):
     for key, x, y, w in layout["bottoms"]:
         row1, row2 = y + 42, y + 76
         if key == "network":
-            d.text((x + 12, y + 9), "MẠNG", font=font(ROBOTO_BOLD, 12), fill=BLUE, anchor="lt")
-            for label, cy in (("Wi-Fi", row1), ("LAN", row2)):
-                d.text((x + 12, cy), label, font=font(ROBOTO_MEDIUM, 12), fill=SUB, anchor="lm")
+            d.text((x + 12, y + 9), label("network", lang), font=font(ROBOTO_BOLD, 12), fill=BLUE, anchor="lt")
+            for name, cy in (("Wi-Fi", row1), ("LAN", row2)):
+                d.text((x + 12, cy), name, font=font(ROBOTO_MEDIUM, 12), fill=SUB, anchor="lm")
                 d.text((x + 54, cy), "↓", font=font(MONO_BOLD, 12), fill=BLUE, anchor="lm")
                 d.text((x + w - 90, cy), "↑", font=font(MONO_BOLD, 12), fill=GREEN, anchor="lm")
         else:
-            d.text((x + 12, y + 9), "HỆ THỐNG", font=font(ROBOTO_BOLD, 12), fill=GREEN, anchor="lt")
-            d.text((x + 12, row1), "Thời gian chạy", font=font(ROBOTO_MEDIUM, 12), fill=SUB, anchor="lm")
-            d.text((x + 12, row2), "Ping", font=font(ROBOTO_MEDIUM, 12), fill=SUB, anchor="lm")
+            d.text((x + 12, y + 9), label("system", lang), font=font(ROBOTO_BOLD, 12), fill=GREEN, anchor="lt")
+            d.text((x + 12, row1), label("uptime", lang), font=font(ROBOTO_MEDIUM, 12), fill=SUB, anchor="lm")
+            d.text((x + 12, row2), label("ping", lang), font=font(ROBOTO_MEDIUM, 12), fill=SUB, anchor="lm")
         d.line([(x + 12, y + 59), (x + w - 12, y + 59)], fill=BORDER)
 
     img.save(THEME_DIR / "background.png")
@@ -272,7 +296,7 @@ def net_rate(direction, x, cy):
             + text_block(x, cy - 8, 70, 16, MONO_BOLD, 11, TEXT, "rm", indent=10))
 
 
-def date_section(layout):
+def date_section(layout, lang):
     if layout["big_clock"]:
         day = text_block(MARGIN, 190, W - 2 * MARGIN, 26, ROBOTO, 20, SUB, "mm")
         hour = text_block(MARGIN, 110, W - 2 * MARGIN, 70, MONO_BOLD, 64, TEXT, "mm")
@@ -280,15 +304,15 @@ def date_section(layout):
         day = text_block(236, 31, 230, 13, ROBOTO, 11, SUB, "rm")
         hour = text_block(326, 5, 140, 24, MONO_BOLD, 20, TEXT, "rm")
     return (f"  DATE:\n    INTERVAL: 1\n"
-            f"    DAY:\n      TEXT:\n        SHOW: True\n        FORMAT: \"EEEE, dd/MM/yyyy\"\n{day}"
+            f"    DAY:\n      TEXT:\n        SHOW: True\n        FORMAT: \"{DATE_FORMATS[lang]}\"\n{day}"
             f"    HOUR:\n      TEXT:\n        SHOW: True\n        FORMAT: \"HH:mm:ss\"\n{hour}")
 
 
-def write_theme_yaml(custom, layout):
+def write_theme_yaml(custom, layout, lang="vi"):
     blocks = custom["blocks"]
     stats = []
     if blocks["clock"]:
-        stats.append(date_section(layout))
+        stats.append(date_section(layout, lang))
 
     gauges, texts = [], []
     for (key, _, accent, cls), x, y, w in layout["gauges"]:
@@ -341,6 +365,7 @@ STATS:
 if __name__ == "__main__":
     custom = load_custom()
     layout = compute_layout(custom["blocks"])
-    draw_background(custom, layout)
-    write_theme_yaml(custom, layout)
+    language = current_language()
+    draw_background(custom, layout, language)
+    write_theme_yaml(custom, layout, language)
     print("Generated", THEME_DIR / "background.png", "and", THEME_DIR / "theme.yaml")

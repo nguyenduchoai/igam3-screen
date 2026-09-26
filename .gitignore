@@ -1,4 +1,4 @@
-# Tạo ra khi cài / chạy trên từng máy, không đưa lên git
+# Made on each computer by the installer or at run time: not in git
 .venv/
 __pycache__/
 *.pyc

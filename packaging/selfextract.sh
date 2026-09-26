@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Bộ cài igam3-screen (màn hình 3.5" của máy iGam3 M1). Chép file này sang máy mới rồi chạy:
-#   bash igam3-screen-installer-VERSION.run            (thêm --help để xem tuỳ chọn)
+# igam3-screen installer (the 3.5" screen of the iGam3 M1). Copy this file to the computer and run:
+#   bash igam3-screen-installer-VERSION.run            (--help lists the options)
 set -euo pipefail
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT

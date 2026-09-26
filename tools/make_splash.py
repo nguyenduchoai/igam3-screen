@@ -1,5 +1,5 @@
-# Ảnh giới thiệu 480x320 theo kiểu ảnh mẫu iGam3: chữ lớn, dòng phụ, dòng cuối, ảnh nền hoặc logo tuỳ chọn.
-# Dùng qua lệnh: igam3-screen splash "Chữ lớn" "Dòng phụ" "Dòng cuối" [--photo ảnh.jpg] [--logo logo.png]
+# 480x320 splash picture in the style of the iGam3 sample picture: big text, subtitle, bottom line, optional photo or logo.
+# Used by: igam3-screen splash "Big text" "Subtitle" "Bottom line" [--photo photo.jpg] [--logo logo.png]
 
 from pathlib import Path
 

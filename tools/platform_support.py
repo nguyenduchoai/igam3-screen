@@ -1,6 +1,6 @@
-# Phần khác nhau giữa Linux và Windows: chạy nền, tự chạy khi khởi động, lối tắt, đường dẫn.
-#   Linux:   dịch vụ systemd user (bật/tắt/tự chạy bằng systemctl --user)
-#   Windows: tiến trình pythonw.exe chạy nền + lối tắt trong thư mục Startup (thử nghiệm)
+# What differs between Linux and Windows: background programs, start at boot, shortcuts, paths.
+#   Linux:   systemd user services (start/stop/autostart with systemctl --user)
+#   Windows: background pythonw.exe processes + shortcuts in the Startup folder (experimental)
 
 import os
 import subprocess

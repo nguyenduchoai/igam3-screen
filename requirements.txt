@@ -1,6 +1,6 @@
-# Thư viện Python của igam3-screen (Linux và Windows), cài qua Internet:
+# Python libraries of igam3-screen (Linux and Windows), installed from the Internet:
 #   python -m pip install -r requirements.txt
-# Tạo lại bằng packaging/build.sh từ môi trường đã chạy thử.
+# Made by packaging/build.sh from a tested environment.
 babel==2.18.0
 certifi==2026.7.22
 charset-normalizer==3.5.1

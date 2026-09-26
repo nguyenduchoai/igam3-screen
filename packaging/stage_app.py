@@ -1,4 +1,4 @@
-# Chép phần cần cho màn 3.5" của turing-smart-screen-python (app/) vào bộ cài, bỏ phần của máy này.
+# Copies what the 3.5" screen needs from turing-smart-screen-python (app/) into the installer, without this machine's data.
 # Usage: stage_app.py <app dir> <destination>
 import re
 import shutil
@@ -49,4 +49,4 @@ for key, value in DEFAULTS.items():
     if not found:
         sys.exit(f"config.yaml: {key} not found")
 (dst / "config.yaml").write_text(config, encoding="utf8")
-print(f"app: {count} theme 3.5\", {len(FONT_DIRS)} bộ font")
+print(f"app: {count} 3.5\" themes, {len(FONT_DIRS)} font families")

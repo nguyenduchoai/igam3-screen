@@ -1,6 +1,8 @@
-﻿# Gỡ igam3-screen trên Windows: dừng màn hình, xoá lối tắt, phím tắt, tự chạy và đường dẫn lệnh.
-# Chạy từ menu Start > iGam3 Screen > Gỡ cài đặt iGam3 Screen, hoặc:
+﻿# Uninstall igam3-screen on Windows: stops the screen, removes the shortcuts, hotkey, start at logon and command path.
+# Run it from Start menu > iGam3 Screen > iGam3 Screen - Uninstall, or:
 #   powershell -ExecutionPolicy Bypass -File uninstall-windows.ps1
+$Vietnamese = (Get-UICulture).Name -like "vi*"
+function T([string]$Vn, [string]$En) { if ($Vietnamese) { $Vn } else { $En } }  # T "Tiếng Việt" "English"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $env:PYTHONIOENCODING = "utf-8"
 $Dir = $PSScriptRoot
@@ -25,13 +27,13 @@ if ($userPath) {
     $kept = ($userPath -split ";") | Where-Object { $_ -and $_ -ne $Dir }
     [Environment]::SetEnvironmentVariable("Path", ($kept -join ";"), "User")
 }
-Write-Host "Đã gỡ lối tắt, phím tắt, tự chạy và lệnh igam3-screen."
+Write-Host (T "Đã gỡ lối tắt, phím tắt, tự chạy và lệnh igam3-screen." "Removed the shortcuts, hotkey, start at logon and the igam3-screen command.")
 
-$answer = Read-Host "Xoá luôn thư mục $Dir (cả cấu hình, ảnh, mật khẩu)? [c/K]"
-if ($answer -match "^[cC]") {
+$answer = Read-Host (T "Xoá luôn thư mục $Dir (cả cấu hình, ảnh, mật khẩu)? [c/K]" "Also delete the folder $Dir (settings, pictures, password)? [y/N]")
+if ($answer -match "^[cCyY]") {
     Set-Location $env:TEMP
     Remove-Item $Dir -Recurse -Force
-    Write-Host "Đã xoá $Dir."
+    Write-Host "$(T 'Đã xoá' 'Deleted') $Dir."
 } else {
-    Write-Host "Giữ lại $Dir. Cài lại bất cứ lúc nào bằng install-windows.cmd."
+    Write-Host (T "Giữ lại $Dir. Cài lại bất cứ lúc nào bằng install-windows.cmd." "Kept $Dir. Reinstall any time with install-windows.cmd.")
 }
