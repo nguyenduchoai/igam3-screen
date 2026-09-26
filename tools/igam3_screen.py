@@ -92,6 +92,16 @@ def primary_ipv4():
     return ip()
 
 
+def active_interface():
+    """Name of the network card that carries the traffic (the one holding the primary address)"""
+    import psutil
+    ip = primary_ipv4()
+    for name, addrs in psutil.net_if_addrs().items() if ip else ():
+        if any(a.family == socket.AF_INET and a.address == ip for a in addrs):
+            return name
+    return None
+
+
 # ---------------------------------------------------------------- config.yaml / themes
 
 def load_config():
@@ -717,12 +727,68 @@ def cmd_splash(args):
 
 
 def cmd_themes(_):
+    import theme_store
     _, cfg = load_config()
     current = str(cfg["config"]["THEME"])
+    community = set(theme_store.installed_themes(THEMES).values())
     print(tr('Theme cho màn 3.5" (* = đang dùng):', 'Themes for the 3.5" screen (* = in use):'))
     for theme in themes_35():
         mark = "*" if theme["name"] == current else " "
-        print(f" {mark} {theme['name']:<28} {orientation_name(theme['orientation'])}")
+        origin = tr("  (cộng đồng)", "  (community)") if theme["name"] in community else ""
+        print(f" {mark} {theme['name']:<34} {orientation_name(theme['orientation'])}{origin}")
+    print(tr("Thêm theme của cộng đồng: igam3-screen store", "More themes from the community: igam3-screen store"))
+
+
+def store_entry(key):
+    import theme_store
+    wanted = key.strip().lower()
+    for entry in theme_store.load_catalog():
+        if wanted in (entry["id"], entry["name"].lower()):
+            return entry
+    die(tr(f"không có theme '{key}' trong kho. Xem danh sách: igam3-screen store",
+           f"no theme '{key}' in the store. List: igam3-screen store"))
+
+
+def cmd_store(args):
+    """Community themes: list, install (downloaded from where their author published them), remove"""
+    import theme_store
+    installed = theme_store.installed_themes(THEMES)
+    if args.action in ("install", "remove") and not args.theme:
+        die(tr(f"cần tên theme: igam3-screen store {args.action} \"<tên>\"", f"which theme? igam3-screen store {args.action} \"<name>\""))
+    if args.action == "install":
+        entry = store_entry(args.theme)
+        print(tr(f"Tải theme {entry['name']} của {entry['author']} ({entry['bytes'] // 1024} KB)...",
+                 f"Downloading {entry['name']} by {entry['author']} ({entry['bytes'] // 1024} KB)..."), flush=True)
+        try:
+            name = theme_store.install(entry, THEMES, FONTS)
+        except (theme_store.StoreError, OSError) as e:
+            die(tr(f"không cài được theme: {e}", f"cannot install the theme: {e}"))
+        print(tr(f"Đã cài theme {name}. Nguồn: {entry['discussion']}", f"Installed the theme {name}. Source: {entry['discussion']}"))
+        if entry.get("gpu"):
+            print(tr("Theme có ô GPU: cần card NVIDIA hoặc AMD, máy chỉ có đồ hoạ Intel (như iGam3 M1) thì ô đó để trống.",
+                     "The theme shows GPU data: it needs an NVIDIA or AMD card, with Intel graphics (like the iGam3 M1) "
+                     "those fields stay empty."))
+        if args.use:
+            cmd_theme(argparse.Namespace(name=name))
+        return
+    if args.action == "remove":
+        entry = store_entry(args.theme)
+        _, cfg = load_config()
+        if installed.get(entry["id"]) == str(cfg["config"]["THEME"]):
+            die(tr("theme này đang được dùng: chọn theme khác trước (igam3-screen theme ...)",
+                   "this theme is in use: choose another one first (igam3-screen theme ...)"))
+        name = theme_store.remove(entry["id"], THEMES)
+        print(tr(f"Đã gỡ theme {name}.", f"Removed the theme {name}.") if name else
+              tr("Theme này chưa được cài.", "This theme is not installed."))
+        return
+    catalog = theme_store.load_catalog()
+    print(tr(f'Kho theme cộng đồng: {len(catalog)} theme 3.5" (* = đã cài)',
+             f'Community themes: {len(catalog)} 3.5" themes (* = installed)'))
+    for entry in catalog:
+        mark = "*" if entry["id"] in installed else " "
+        print(f" {mark} {entry['name']:<40} {orientation_name(entry['orientation']):<10} {entry['author']}")
+    print(tr("Cài và dùng: igam3-screen store install \"<tên>\" --use   (tải từ bài đăng của tác giả)",
+             "Install and use: igam3-screen store install \"<name>\" --use   (downloaded from the author's post)"))
 
 
 def cmd_theme(args):
@@ -1028,13 +1094,51 @@ def cmd_install(args):
         sys.exit(SCREEN.set_autostart(True, now=True))
 
 
+def set_date_language():
+    """Dates of the themes: Vietnamese in Vietnamese; in English, the system format unless the system is Vietnamese"""
+    import babel.dates
+    if i18n.LANG == "vi":
+        wanted = "vi_VN"
+    elif i18n.system_language() == "vi":
+        wanted = "en_GB"  # English words, but the 24-hour clock that Vietnamese systems use
+    else:
+        return
+    babel.dates.LC_TIME = wanted
+    if WINDOWS:  # library/stats.py asks Windows (locale.getdefaultlocale) instead of babel
+        import locale
+        locale.getdefaultlocale = lambda *_: (wanted, "UTF-8")
+
+
+def follow_active_network(config_data):
+    """A theme that shows a single network card (ETH or WLO) shows the one that carries the traffic"""
+    import yaml
+    theme = THEMES / str(config_data["config"]["THEME"]) / "theme.yaml"
+    try:
+        with open(theme, encoding="utf8") as f:
+            net = ((yaml.safe_load(f) or {}).get("STATS") or {}).get("NET") or {}
+    except (OSError, yaml.YAMLError, AttributeError):
+        return
+
+    def shows(node):
+        return isinstance(node, dict) and (node.get("SHOW") is True or any(shows(v) for v in node.values()))
+
+    cards = [card for card in ("ETH", "WLO") if shows(net.get(card))]
+    active = active_interface() if len(cards) == 1 else None
+    if active and config_data["config"].get(cards[0]) != active:
+        config_data["config"][cards[0]] = active
+        # The hidden card must not measure the same interface: library/stats.py reads both cards in turn and
+        # each reading resets the byte counters the next one computes its rate from
+        config_data["config"]["WLO" if cards[0] == "ETH" else "ETH"] = ""
+        print(tr(f"Theme chỉ hiện một card mạng ({cards[0]}): dùng card đang chạy {active}",
+                 f"The theme shows one network card ({cards[0]}): using the active one, {active}"), flush=True)
+
+
 def cmd_run(_):
     """Entry point of the background screen program: shows the main screen chosen in settings.yaml"""
     os.chdir(APP)
-    # Language of the dashboard values (sensors_custom) and dates (babel), whatever the system locale says
+    # Language of the dashboard values (sensors_custom) and dates (babel)
     os.environ["IGAM3_LANG"] = i18n.LANG
-    import babel.dates
-    babel.dates.LC_TIME = "vi_VN" if i18n.LANG == "vi" else "en_US"
+    set_date_language()
     install_mirror()
     settings = load_settings()
     if settings["mode"] == "image":
@@ -1074,6 +1178,8 @@ def cmd_run(_):
         return
     if WINDOWS:
         watch_stop_file("screen", stop_stats_now)
+    from library import config as upstream_config  # the module main.py uses: adjust it before library.stats reads it
+    follow_active_network(upstream_config.CONFIG_DATA)
     sys.argv = [str(APP / "main.py")]
     runpy.run_path(str(APP / "main.py"), run_name="__main__")
 
@@ -1149,6 +1255,11 @@ def main():
     p.add_argument("--out", help=tr("chỉ lưu ảnh ra file này, không hiện lên màn hình",
                                     "only save the picture to this file, do not show it"))
     add("themes", cmd_themes, 'liệt kê các theme cho màn 3.5"', 'list the themes for the 3.5" screen')
+    p = add("store", cmd_store, "kho theme cộng đồng: xem, cài, gỡ (tải từ bài đăng của tác giả)",
+            "community themes: list, install, remove (downloaded from the author's post)")
+    p.add_argument("action", nargs="?", choices=["list", "install", "remove"], default="list")
+    p.add_argument("theme", nargs="?", help=tr("tên hoặc mã của theme", "name or id of the theme"))
+    p.add_argument("--use", action="store_true", help=tr("dùng theme ngay sau khi cài", "use the theme right after installing it"))
     p = add("theme", cmd_theme, "đổi theme", "change the theme")
     p.add_argument("name", help=tr("tên theme (xem: igam3-screen themes)", "theme name (see: igam3-screen themes)"))
     p = add("brightness", cmd_brightness, "đặt độ sáng 0-100", "set the brightness 0-100")

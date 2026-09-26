@@ -15,6 +15,8 @@ rồi thêm theme, công cụ quản lý và bộ cài riêng cho iGam3.
 
 - **Bảng thông số**: CPU (%, nhiệt độ, xung), RAM, SSD, tốc độ Wi-Fi/LAN, IP, thời gian chạy, ping, ngày giờ.
   **Bật/tắt từng khối**, bố cục tự dàn lại; đổi **tiêu đề**, **nhãn**, **ảnh nền**; kèm 38 theme 3.5" khác có sẵn.
+- **Thư viện theme**: 39 theme có sẵn, cộng **85 theme của cộng đồng** đã chạy thử với màn này, bấm một nút là tải về
+  từ bài đăng của tác giả và dùng luôn.
 - **4 kiểu màn hình chính**, giữ nguyên sau khi khởi động lại: bảng thông số, ảnh cố định (PNG/JPG/GIF), mã QR, dòng lệnh.
 - **Ảnh giới thiệu**: tạo ảnh có chữ của bạn, kèm logo hoặc ảnh nền.
 - **Giao diện quản lý web**: xem trực tiếp màn nhỏ đang hiện gì, bật/tắt, đổi mọi thứ ở trên. Mở cho điện thoại
@@ -50,11 +52,11 @@ Kết quả có dòng `QinHeng Electronics UsbMonitor` là đúng.
 1. Vào trang [Releases](https://github.com/nguyenduchoai/igam3-screen/releases), tải file `igam3-screen-installer-<phiên bản>.run`.
 2. Mở Terminal bằng **tài khoản thường** (không gõ `sudo`) và chạy:
    ```bash
-   bash igam3-screen-installer-1.1.0.run
+   bash igam3-screen-installer-1.2.0.run
    ```
    Có thể đặt sẵn tiêu đề và ngôn ngữ:
    ```bash
-   bash igam3-screen-installer-1.1.0.run --title "Tên máy" --tag "DePIN NODE" --lang vi
+   bash igam3-screen-installer-1.2.0.run --title "Tên máy" --tag "DePIN NODE" --lang vi
    ```
 3. Nhập mật khẩu sudo khi được hỏi. Khoảng 10 giây sau, màn nhỏ hiện bảng thông số.
 
@@ -155,6 +157,34 @@ igam3-screen rotate                         # xoay 180°
 
 Tắt hết các ô số liệu mà vẫn bật Đồng hồ thì màn thành đồng hồ lớn.
 
+### Thư viện theme và theme cộng đồng
+
+Mục **Thư viện theme** trên giao diện web hiện mọi theme kèm ảnh xem trước: bấm **Dùng** là đổi ngay. Tab
+**Kho cộng đồng** có thêm 85 theme cho màn 3.5" do mọi người chia sẻ trong mục
+[Themes](https://github.com/mathoudebine/turing-smart-screen-python/discussions/categories/themes) của
+turing-smart-screen-python, theme nào cũng đã chạy thử với igam3-screen: bấm **Tải & dùng** là máy tải về và hiện luôn.
+
+<p align="center"><img src="docs/vi/theme-gallery.png" width="720" alt="Thư viện theme trên giao diện web"></p>
+
+Bằng lệnh:
+
+```bash
+igam3-screen store                              # xem các theme cộng đồng
+igam3-screen store install "DragonBall" --use   # tải từ bài đăng của tác giả và hiện luôn
+igam3-screen store remove "DragonBall"
+```
+
+Theme cộng đồng **không nằm trong igam3-screen**. File `tools/theme_catalog.json` chỉ chứa đường dẫn, mã kiểm tra và
+cách cài; theme được tải từ bài đăng của tác giả vào lúc bạn cài. Theme thuộc về tác giả của nó, một số dùng hình của
+game hoặc anime: hãy dùng cho màn hình của bạn, và hỏi tác giả trước khi chia sẻ lại. Theme cần mã Python riêng của
+tác giả, hoặc cần font không được công bố, thì không có trong danh sách.
+
+Cần biết:
+- Ô GPU cần card NVIDIA hoặc AMD. Máy chỉ có đồ hoạ Intel (như iGam3 M1) thì các ô đó để trống.
+- Theme chỉ hiện một card mạng (LAN hoặc Wi-Fi) sẽ tự hiện card đang có kết nối.
+- Người duy trì làm mới danh sách bằng `python packaging/theme_catalog.py` (đọc mục Themes, rồi cài và chạy thử từng
+  theme trên màn giả lập).
+
 ### Ảnh giới thiệu
 
 ```bash
@@ -204,6 +234,7 @@ khi dịch vụ đã chạy (khoảng 10–15 giây sau khi bật máy). Có hai
 | `igam3-screen panel` | mở giao diện quản lý |
 | `igam3-screen web --password` / `--lan on\|off` | mật khẩu, mở/đóng giao diện cho mạng LAN |
 | `igam3-screen language vi\|en\|auto` | ngôn ngữ |
+| `igam3-screen themes` / `store` | theme trên máy / theme cộng đồng để cài |
 | `igam3-screen test` | hình kiểm tra hướng màn (mũi tên phải chỉ lên) |
 | `igam3-screen off` | tắt màn |
 | `igam3-screen config` | trình cấu hình gốc của turing-smart-screen-python |
@@ -231,6 +262,7 @@ Trước lần đăng nhập đầu tiên sau khi cài, lệnh `igam3-screen` ch
 | Không thấy màn | `lsusb -d 1a86:5722`; thử rút cắm lại cáp USB bên trong (nếu có) hoặc khởi động lại máy |
 | Windows: màn không chạy | tắt app TURZX; xem Device Manager > Ports (COM & LPT); `igam3-screen logs` |
 | Điện thoại không vào được | máy và điện thoại cùng mạng? `igam3-screen web` xem đã mở LAN chưa; IP có thể đã đổi (xem ô MẠNG trên màn) |
+| Theme cộng đồng để trống vài ô | ô GPU cần card NVIDIA/AMD; ô khác có thể cần số liệu mà máy bạn không có |
 | Xem lỗi chi tiết | `igam3-screen logs -n 100` |
 
 ## Cấu trúc
@@ -243,6 +275,7 @@ Trước lần đăng nhập đầu tiên sau khi cài, lệnh `igam3-screen` ch
 | `tools/web_panel.py`, `tools/web/` | giao diện quản lý |
 | `tools/console_mirror.py`, `tools/qr_screen.py`, `tools/make_splash.py` | chế độ Dòng lệnh, màn QR, ảnh giới thiệu |
 | `tools/i18n.py` | tiếng Việt / tiếng Anh |
+| `tools/theme_store.py`, `tools/theme_catalog.json` | theme cộng đồng: bộ cài và danh sách (tạo bằng `packaging/theme_catalog.py`) |
 | `tools/platform_support.py` | phần khác nhau giữa Linux (systemd) và Windows |
 | `install.sh`, `setup-root.sh`, `uninstall.sh` | cài / cấp quyền / gỡ trên Ubuntu |
 | `install-windows.cmd`, `install-windows.ps1`, `uninstall-windows.ps1` | cài / gỡ trên Windows |
@@ -261,7 +294,7 @@ bash packaging/build.sh
 
 Lệnh này tạo `dist/igam3-screen-installer-<VERSION>.run` (Linux, kèm thư viện) và `dist/igam3-screen-windows-<VERSION>.zip`.
 Đưa hai file đó lên một bản phát hành trên GitHub (Releases), ví dụ bằng
-[GitHub CLI](https://cli.github.com/): `gh release create v1.1.0 dist/*`.
+[GitHub CLI](https://cli.github.com/): `gh release create v1.2.0 dist/*`.
 
 ## Giấy phép và ghi công
 

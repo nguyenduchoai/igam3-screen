@@ -17,6 +17,8 @@ management tools and installers made for the iGam3.
 - **Dashboard**: CPU (%, temperature, clock speed), RAM, SSD, Wi-Fi/LAN speed, IP address, uptime, ping, date and time.
   **Turn each block on or off** and the layout rearranges itself; change the **title**, **tag** and **background
   picture**; 38 other 3.5" themes are included.
+- **Theme gallery**: the 39 bundled themes, plus **85 community themes** tested on this screen that install with one
+  click from their authors' posts.
 - **4 kinds of main screen**, kept after a restart: dashboard, fixed picture (PNG/JPG/GIF), QR code, text console.
 - **Splash pictures**: make a picture with your own text, logo or photo.
 - **Web control panel**: see live what the small screen shows, turn it on or off and change everything above. Open it
@@ -53,11 +55,11 @@ A line with `QinHeng Electronics UsbMonitor` means it does.
    [Releases](https://github.com/nguyenduchoai/igam3-screen/releases) page.
 2. Open a terminal as your **normal user** (do not type `sudo`) and run:
    ```bash
-   bash igam3-screen-installer-1.1.0.run
+   bash igam3-screen-installer-1.2.0.run
    ```
    You can set the title and the language right away:
    ```bash
-   bash igam3-screen-installer-1.1.0.run --title "My node" --tag "DePIN NODE" --lang en
+   bash igam3-screen-installer-1.2.0.run --title "My node" --tag "DePIN NODE" --lang en
    ```
 3. Type your sudo password when asked. About 10 seconds later the small screen shows the dashboard.
 
@@ -162,6 +164,34 @@ igam3-screen rotate                         # rotate 180°
 
 With every data block off and the clock on, the screen becomes a big clock.
 
+### Theme gallery and community themes
+
+The **Theme gallery** of the web panel shows every theme with a preview: **Use** switches to it right away. Its
+**Community** tab lists 85 more themes for the 3.5" screen that people shared in the
+[Themes discussions](https://github.com/mathoudebine/turing-smart-screen-python/discussions/categories/themes) of
+turing-smart-screen-python, each one tested with igam3-screen: **Get & use** downloads it and shows it.
+
+<p align="center"><img src="docs/theme-gallery.png" width="720" alt="Theme gallery of the web panel"></p>
+
+From a terminal:
+
+```bash
+igam3-screen store                              # list the community themes
+igam3-screen store install "DragonBall" --use   # download it from its author's post and show it
+igam3-screen store remove "DragonBall"
+```
+
+Community themes are **not part of igam3-screen**. `tools/theme_catalog.json` only holds links, checksums and install
+instructions, and each theme is downloaded from its author's post when you install it. They belong to their authors,
+and some use artwork of games or anime: keep them for your own screen and ask their authors before sharing them further.
+Themes that need their author's Python code, or fonts that were never published, are left out.
+
+Good to know:
+- GPU fields need an NVIDIA or AMD graphics card. With Intel graphics (like the iGam3 M1) they stay empty.
+- When a theme shows a single network card (LAN or Wi-Fi), it shows the one that carries the traffic.
+- Maintainers refresh the catalog with `python packaging/theme_catalog.py` (reads the discussions, then installs and
+  runs every theme in the screen simulator).
+
 ### Splash picture
 
 ```bash
@@ -211,6 +241,7 @@ lights up once the service runs (10–15 seconds after power on). Two ways to us
 | `igam3-screen panel` | open the web panel |
 | `igam3-screen web --password` / `--lan on\|off` | password, open / close the panel to the local network |
 | `igam3-screen language en\|vi\|auto` | language |
+| `igam3-screen themes` / `store` | themes on this computer / community themes to install |
 | `igam3-screen test` | orientation test pattern (the arrow must point up) |
 | `igam3-screen off` | turn the screen off |
 | `igam3-screen config` | configuration window of turing-smart-screen-python |
@@ -238,6 +269,7 @@ Until your next login after installing, the `igam3-screen` command is not in the
 | Screen not found | `lsusb -d 1a86:5722`; reconnect the internal USB cable if there is one, or restart the computer |
 | Windows: the screen does not start | close the TURZX app; check Device Manager > Ports (COM & LPT); `igam3-screen logs` |
 | The phone cannot connect | same network? `igam3-screen web` tells whether the panel is open; the IP may have changed (see the NETWORK block) |
+| A community theme leaves some fields empty | GPU fields need an NVIDIA/AMD card; other fields may need data your computer does not have |
 | Details of an error | `igam3-screen logs -n 100` |
 
 ## Project layout
@@ -250,6 +282,7 @@ Until your next login after installing, the `igam3-screen` command is not in the
 | `tools/web_panel.py`, `tools/web/` | the web panel |
 | `tools/console_mirror.py`, `tools/qr_screen.py`, `tools/make_splash.py` | console mode, QR screen, splash pictures |
 | `tools/i18n.py` | English / Vietnamese |
+| `tools/theme_store.py`, `tools/theme_catalog.json` | community themes: installer and catalog (built by `packaging/theme_catalog.py`) |
 | `tools/platform_support.py` | what differs between Linux (systemd) and Windows |
 | `install.sh`, `setup-root.sh`, `uninstall.sh` | install / permissions / uninstall on Ubuntu |
 | `install-windows.cmd`, `install-windows.ps1`, `uninstall-windows.ps1` | install / uninstall on Windows |
@@ -268,7 +301,7 @@ bash packaging/build.sh
 
 This makes `dist/igam3-screen-installer-<VERSION>.run` (Linux, libraries included) and
 `dist/igam3-screen-windows-<VERSION>.zip`. Publish both as a GitHub release, for example with the
-[GitHub CLI](https://cli.github.com/): `gh release create v1.1.0 dist/*`.
+[GitHub CLI](https://cli.github.com/): `gh release create v1.2.0 dist/*`.
 
 ## License and credits
 

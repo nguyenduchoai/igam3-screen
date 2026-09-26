@@ -20,7 +20,7 @@ stage() {
     cp -a "$ROOT"/{igam3-screen,igam3-screen.cmd,setup-root.sh,install.sh,uninstall.sh} "$dest/"
     cp -a "$ROOT"/{install-windows.ps1,install-windows.cmd,uninstall-windows.ps1} "$dest/"
     cp -a "$ROOT"/{systemd,examples} "$dest/"
-    cp -a "$ROOT"/tools/*.py "$ROOT/tools/web" "$dest/tools/"
+    cp -a "$ROOT"/tools/*.py "$ROOT"/tools/*.json "$ROOT/tools/web" "$dest/tools/"
     "$PY" "$ROOT/packaging/stage_app.py" "$ROOT/app" "$dest/app"
     # Default look of the iGam3 theme (this machine's title and blocks live in custom.yaml, which is not copied).
     # English here; "igam3-screen init" redraws it in the language of the target computer
@@ -39,7 +39,7 @@ if [[ "${1:-}" == "repo" ]]; then
     find "$REPO" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
     stage "$REPO"
     mkdir -p "$REPO/packaging"
-    cp -a "$ROOT"/packaging/{build.sh,stage_app.py,selfextract.sh,make_zip.py} "$REPO/packaging/"
+    cp -a "$ROOT"/packaging/{build.sh,stage_app.py,selfextract.sh,make_zip.py,theme_catalog.py} "$REPO/packaging/"
     cp -a "$ROOT"/{docs,.gitignore,.gitattributes} "$REPO/"
     echo "Source tree: $REPO ($(du -sh "$REPO" --exclude=.git | cut -f1))"
     exit 0

@@ -1,11 +1,15 @@
 # Copies what the 3.5" screen needs from turing-smart-screen-python (app/) into the installer, without this machine's data.
 # Usage: stage_app.py <app dir> <destination>
+import json
 import re
 import shutil
 import sys
 from pathlib import Path
 
 import yaml
+
+STORE_MARKER = ".igam3-store.json"  # tools/theme_store.py: themes of other authors installed on this machine
+STORE_FONTS = ".igam3-store-fonts.json"  # tools/theme_store.py: fonts added for them
 
 src, dst = Path(sys.argv[1]), Path(sys.argv[2])
 FILES = ["main.py", "configure.py", "theme-editor.py", "config.yaml", "requirements.txt", "LICENSE", "AUTHORS",
@@ -21,8 +25,16 @@ for name in FILES:
     shutil.copy2(src / name, dst / name)
 shutil.copytree(src / "library", dst / "library", ignore=ignore)
 shutil.copytree(src / "res" / "icons", dst / "res" / "icons", ignore=ignore)
+# Fonts added for community themes are never shipped
+try:
+    store_fonts = set(json.loads((src / "res" / "fonts" / STORE_FONTS).read_text(encoding="utf8")))
+except (OSError, ValueError):
+    store_fonts = set()
 for name in FONT_DIRS:
-    shutil.copytree(src / "res" / "fonts" / name, dst / "res" / "fonts" / name, ignore=ignore)
+    font_dir = src / "res" / "fonts" / name
+    skip = lambda folder, names: ignore(folder, names) | {
+        n for n in names if str((Path(folder) / n).relative_to(src / "res" / "fonts")).replace("\\", "/") in store_fonts}
+    shutil.copytree(font_dir, dst / "res" / "fonts" / name, ignore=skip)
 
 themes = src / "res" / "themes"
 (dst / "res" / "themes").mkdir(parents=True)
@@ -30,7 +42,8 @@ for name in ("default.yaml", "theme_example.yaml"):
     shutil.copy2(themes / name, dst / "res" / "themes" / name)
 count = 0
 for theme in sorted(themes.iterdir()):
-    if theme.name in SKIP_THEMES or not (theme / "theme.yaml").is_file():
+    # Community themes installed on this machine belong to their authors: never shipped
+    if theme.name in SKIP_THEMES or not (theme / "theme.yaml").is_file() or (theme / STORE_MARKER).exists():
         continue
     with open(theme / "theme.yaml", encoding="utf8") as f:
         size = str(((yaml.safe_load(f) or {}).get("display") or {}).get("DISPLAY_SIZE", '3.5"'))

@@ -50,6 +50,8 @@ def no_password_page():
 <li>{tr("Hoặc chạy lệnh:", "Or run:")} <code>igam3-screen web --password</code></li></ul></body></html>"""
 
 _verified = set()  # Authorization headers already accepted: PBKDF2 is slow, check each one only once
+_thumbnails = {}  # (theme, file modification time) -> small JPEG for the theme gallery
+PREVIEW_FILES = ("preview.png", "theme_example.png", "preview.jpg", "background.png", "background.jpg")
 _action_lock = threading.Lock()  # one change of the screen at a time
 _last_request = time.monotonic()
 
@@ -71,6 +73,43 @@ def uploaded(slot):
     return files[-1] if files else None
 
 
+def themes_payload():
+    """Themes on this computer and community themes that can be installed, for the theme gallery"""
+    import theme_store
+    _, cfg = core.load_config()
+    catalog = theme_store.load_catalog()
+    by_id = {entry["id"]: entry for entry in catalog}
+    community = theme_store.installed_themes(core.THEMES)  # id -> folder name
+    origin = {name: by_id.get(theme_id) for theme_id, name in community.items()}
+    installed = [{"name": t["name"], "orientation": t["orientation"], "community": t["name"] in origin,
+                  "id": (origin.get(t["name"]) or {}).get("id", ""), "author": (origin.get(t["name"]) or {}).get("author", ""),
+                  "discussion": (origin.get(t["name"]) or {}).get("discussion", "")} for t in core.themes_35()]
+    store = [{"id": e["id"], "name": e["name"], "author": e["author"], "orientation": e["orientation"], "gpu": e["gpu"],
+              "preview": e["preview"], "discussion": e["discussion"], "kb": e["bytes"] // 1024}
+             for e in catalog if e["id"] not in community]
+    return {"current": str(cfg["config"]["THEME"]), "installed": installed, "store": store}
+
+
+def theme_thumbnail(name):
+    """Small JPEG of a theme's preview picture, or None"""
+    if name not in {t["name"] for t in core.themes_35()}:  # only real theme folders, never a path
+        return None
+    folder = core.THEMES / name
+    source = next((folder / f for f in PREVIEW_FILES if (folder / f).is_file()), None)
+    if not source:
+        return None
+    key = (name, source.stat().st_mtime)
+    if key not in _thumbnails:
+        from PIL import Image
+        with Image.open(source) as img:
+            img = img.convert("RGB")
+            img.thumbnail((360, 360))
+            out = io.BytesIO()
+            img.save(out, "JPEG", quality=82)
+        _thumbnails[key] = out.getvalue()
+    return _thumbnails[key]
+
+
 def do_action(data):
     """(ok, message) for one change requested by the page"""
     action = data.get("action")
@@ -85,6 +124,10 @@ def do_action(data):
                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                          **background_kwargs())
         return True, tr("Màn nhỏ đang hiện mã QR trong 1 phút", "The small screen shows the QR code for 1 minute")
+    if action == "store_install" and text("id"):
+        return run_cli("store", "install", text("id"), "--use")
+    if action == "store_remove" and text("id"):
+        return run_cli("store", "remove", text("id"))
     if action == "language" and data.get("language") in LANGUAGE_CHOICES:
         return run_cli("language", data["language"])
     if action == "autostart":
@@ -139,11 +182,11 @@ class Handler(BaseHTTPRequestHandler):
 
     # ------------------------------------------------------------ responses
 
-    def send_body(self, status, body, content_type, extra=None):
+    def send_body(self, status, body, content_type, extra=None, cache="no-store"):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", cache)
         self.send_header("X-Frame-Options", "DENY")
         for key, value in (extra or {}).items():
             self.send_header(key, value)
@@ -219,6 +262,15 @@ class Handler(BaseHTTPRequestHandler):
             self.send_file(core.PREVIEW, "image/png")
         elif path == "/splash-preview.png":
             self.send_file(SPLASH_PREVIEW, "image/png")
+        elif path == "/api/themes":
+            self.send_json(themes_payload())
+        elif path == "/theme-preview":
+            name = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(self.path).query)).get("name", "")
+            picture = theme_thumbnail(name)
+            if picture:
+                self.send_body(HTTPStatus.OK, picture, "image/jpeg", cache="private, max-age=600")
+            else:
+                self.send_body(HTTPStatus.NOT_FOUND, b"", "text/plain")
         else:
             self.send_body(HTTPStatus.NOT_FOUND, b"", "text/plain")
 

@@ -13,10 +13,15 @@ Components and licenses
 - Python libraries (in wheels/ of the Linux installer: Pillow, numpy, psutil, PyYAML, pyserial, babel, ruamel.yaml,
   qrcode, requests...) keep their own licenses, recorded in the metadata of each .whl file.
 
+- Community themes (tools/theme_catalog.json): NOT included. The catalog only lists where their authors published them
+  in the Themes discussions of turing-smart-screen-python, with checksums; "igam3-screen store install" downloads a
+  theme from there onto the user's computer. Each theme belongs to its author.
+
 When you pass the installer on, keep these LICENSE/NOTICE files. The source code is already inside the installer.
 
 Tiếng Việt
 ----------
 igam3-screen phát hành theo GPL-3.0-or-later vì dùng và kèm theo turing-smart-screen-python (GPL-3.0-or-later).
-Font và thư viện Python giữ giấy phép riêng như liệt kê ở trên. Khi đưa bộ cài cho người khác, giữ nguyên các file
-LICENSE/NOTICE này.
+Font và thư viện Python giữ giấy phép riêng như liệt kê ở trên. Theme cộng đồng không nằm trong bộ cài: danh sách
+chỉ ghi nơi tác giả đăng theme, và theme được tải từ đó về máy người dùng khi cài. Khi đưa bộ cài cho người khác,
+giữ nguyên các file LICENSE/NOTICE này.

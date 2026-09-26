@@ -34,6 +34,7 @@
   .row:first-of-type { border-top: 0; }
   .hint { color: var(--sub); font-size: 13px; margin: 8px 0 0; }
   .hint.warn { color: var(--warn); }
+  .hint a { color: var(--accent); }
   code { background: var(--card2); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; font-size: 13px; word-break: break-all; }
   .seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: var(--card2); padding: 4px; border-radius: 12px; border: 1px solid var(--border); }
   .seg button { background: transparent; color: var(--sub); border: 0; border-radius: 9px; padding: 10px 6px; font: inherit; font-weight: 600; cursor: pointer; }
@@ -71,6 +72,25 @@
   #toast.err { border-color: #7f1d1d; color: #fecaca; }
   body.busy .btn, body.busy .seg button { pointer-events: none; opacity: .6; }
   .head-right { display: flex; align-items: center; gap: 8px; }
+  .gallery-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .gallery-bar .seg { grid-template-columns: repeat(2, auto); flex: none; }
+  .gallery-bar .seg button { padding: 8px 12px; }
+  .gallery-bar input[type=search] { flex: 1 1 180px; width: auto; background: var(--card2); color: var(--text); border: 1px solid var(--border);
+            border-radius: 10px; padding: 9px 12px; font: inherit; }
+  .themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+  .tcard { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .tcard.current { border-color: var(--accent); }
+  .thumb { aspect-ratio: 3 / 2; background: #000; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center;
+           color: var(--muted); font-size: 12px; text-align: center; }
+  .thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .tname { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tmeta { color: var(--sub); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tmeta a { color: var(--sub); }
+  .tactions { display: flex; gap: 6px; margin-top: auto; }
+  .tactions .btn { flex: 1; padding: 8px 6px; font-size: 13px; }
+  .tactions .btn.ghost { flex: none; text-decoration: none; text-align: center; }
+  .badge { font-size: 11px; color: var(--accent); border: 1px solid #155e6e; border-radius: 999px; padding: 0 6px; margin-left: 4px; }
+  .more { margin-top: 12px; }
   select.compact { width: auto; padding: 5px 10px; font-size: 13px; border-radius: 999px; color: var(--sub); }
 </style>
 </head>
@@ -148,6 +168,25 @@
       <button class="btn ghost" id="removeBg" data-t="removeBg"></button>
     </div>
     <p class="hint" id="bgHint"></p>
+  </section>
+
+  <section class="card span2" id="gallery">
+    <h2 data-t="galleryTitle"></h2>
+    <div class="gallery-bar">
+      <div class="seg" role="group" data-t-label="galleryTitle">
+        <button data-view="installed" id="viewInstalled"></button>
+        <button data-view="store" id="viewStore"></button>
+      </div>
+      <input type="search" id="themeSearch" data-t-placeholder="searchThemes" data-t-label="searchThemes">
+      <select id="themeOrient" class="compact" data-t-label="orientation">
+        <option value="" data-t="orientAll"></option>
+        <option value="landscape" data-t="landscapeCap"></option>
+        <option value="portrait" data-t="portraitCap"></option>
+      </select>
+    </div>
+    <p class="hint" id="galleryHint"></p>
+    <div class="themes" id="themeGrid"></div>
+    <div class="actions more"><button class="btn ghost" id="moreThemes" hidden></button></div>
   </section>
 
   <section class="card">
@@ -284,6 +323,30 @@ const TEXT = {
   splashKept: ["Đã đặt ảnh giới thiệu làm màn hình chính", "The splash picture is now the main screen"],
   splashPreview: ["Xem trước bên dưới", "Preview below"],
   pwMismatch: ["Hai lần nhập không khớp", "The two entries differ"],
+  galleryTitle: ["Thư viện theme", "Theme gallery"],
+  viewInstalled: ["Trên máy ({0})", "On this computer ({0})"],
+  viewStore: ["Kho cộng đồng ({0})", "Community ({0})"],
+  searchThemes: ["Tìm theme hoặc tác giả…", "Search a theme or an author…"],
+  orientation: ["Hướng màn hình", "Orientation"],
+  orientAll: ["Mọi hướng", "Any orientation"],
+  landscapeCap: ["Ngang", "Landscape"],
+  portraitCap: ["Dọc", "Portrait"],
+  use: ["Dùng", "Use"],
+  inUse: ["Đang dùng", "In use"],
+  getUse: ["Tải & dùng", "Get & use"],
+  removeTheme: ["Gỡ", "Remove"],
+  removeConfirm: ["Gỡ theme {0} khỏi máy?", "Remove the theme {0} from this computer?"],
+  source: ["Bài đăng gốc của tác giả", "The author's post"],
+  by: ["{0}", "by {0}"],
+  community: ["cộng đồng", "community"],
+  noPreview: ["Chưa có ảnh xem trước", "No preview"],
+  noMatch: ["Không có theme nào khớp.", "No theme matches."],
+  moreThemes: ["Xem thêm ({0})", "Show more ({0})"],
+  installing: ["Đang tải {0} từ bài đăng của tác giả…", "Downloading {0} from its author's post…"],
+  installedHint: ["Bấm Dùng để đổi theme ngay. Riêng theme iGam3 chỉnh được tiêu đề, các khối và ảnh nền ở mục Bảng thông số.",
+                  "Use switches the theme right away. The iGam3 theme can also be customised under Dashboard."],
+  storeHint: ["Theme do cộng đồng chia sẻ trong mục <a href=\"https://github.com/mathoudebine/turing-smart-screen-python/discussions/categories/themes\" target=\"_blank\" rel=\"noopener\">Themes</a> của turing-smart-screen-python, đã chạy thử với màn 3.5\". Tải & dùng: máy tải theme từ bài đăng của tác giả rồi hiện luôn. Ô GPU cần card NVIDIA hoặc AMD.",
+              "Themes shared by the community in the <a href=\"https://github.com/mathoudebine/turing-smart-screen-python/discussions/categories/themes\" target=\"_blank\" rel=\"noopener\">Themes</a> discussions of turing-smart-screen-python, tested on the 3.5\" screen. Get & use downloads the theme from its author's post and shows it. GPU fields need an NVIDIA or AMD card."],
 };
 
 function t(key, ...args) {
@@ -297,6 +360,7 @@ document.querySelectorAll("[data-t]").forEach((el) => (el.textContent = t(el.dat
 document.querySelectorAll("[data-t-html]").forEach((el) => (el.innerHTML = t(el.dataset.tHtml)));
 document.querySelectorAll("[data-t-label]").forEach((el) => el.setAttribute("aria-label", t(el.dataset.tLabel)));
 document.querySelectorAll("[data-t-alt]").forEach((el) => (el.alt = t(el.dataset.tAlt)));
+document.querySelectorAll("[data-t-placeholder]").forEach((el) => (el.placeholder = t(el.dataset.tPlaceholder)));
 document.querySelectorAll(".picker input").forEach((input) => input.addEventListener("change", () => {
   input.parentElement.querySelector(".fname").textContent = input.files[0] ? input.files[0].name : t("noFile");
 }));
@@ -430,6 +494,131 @@ $("savePw").addEventListener("click", () => {
   action({ action: "password", password: $("pw1").value }).then((ok) => { if (ok) { $("pw1").value = ""; $("pw2").value = ""; } });
 });
 
+// Theme gallery
+let themes = null, galleryView = location.hash === "#store" ? "store" : "installed", galleryLimit = 24;
+const orientName = (o) => t(o === "landscape" ? "landscapeCap" : "portraitCap");
+
+function themeCard(item, installed) {
+  const card = document.createElement("div");
+  const current = installed && themes.current === item.name;
+  card.className = "tcard" + (current ? " current" : "");
+  const thumb = document.createElement("div");
+  thumb.className = "thumb";
+  const safe = (url) => (/^https:\/\//.test(url || "") ? url : "");
+  const src = installed ? `/theme-preview?name=${encodeURIComponent(item.name)}` : safe(item.preview);
+  if (src) {
+    const img = document.createElement("img");
+    img.loading = "lazy";
+    img.referrerPolicy = "no-referrer";
+    img.alt = item.name;
+    img.src = src;
+    img.onerror = () => { thumb.textContent = t("noPreview"); };
+    thumb.appendChild(img);
+  } else {
+    thumb.textContent = t("noPreview");
+  }
+  card.appendChild(thumb);
+  const name = document.createElement("div");
+  name.className = "tname";
+  name.title = item.name;
+  name.textContent = item.name;
+  if (installed && item.community) {
+    const badge = document.createElement("span");
+    badge.className = "badge";
+    badge.textContent = t("community");
+    name.appendChild(badge);
+  }
+  card.appendChild(name);
+  const meta = document.createElement("div");
+  meta.className = "tmeta";
+  meta.textContent = orientName(item.orientation) + (item.author ? " · " + t("by", item.author) : "");
+  meta.title = meta.textContent;
+  card.appendChild(meta);
+  const actions = document.createElement("div");
+  actions.className = "tactions";
+  const main = document.createElement("button");
+  main.className = "btn";
+  if (installed) {
+    main.textContent = t(current ? "inUse" : "use");
+    main.disabled = current;
+    main.addEventListener("click", async () => { await action({ action: "theme", name: item.name }); loadThemes(); });
+  } else {
+    main.textContent = t("getUse");
+    main.addEventListener("click", async () => {
+      toast(t("installing", item.name));
+      await action({ action: "store_install", id: item.id });
+      loadThemes();
+    });
+  }
+  actions.appendChild(main);
+  if (safe(item.discussion)) {
+    const link = document.createElement("a");
+    link.className = "btn ghost";
+    link.href = safe(item.discussion);
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = "↗";
+    link.title = t("source");
+    link.setAttribute("aria-label", t("source"));
+    actions.appendChild(link);
+  }
+  if (installed && item.community && !current) {
+    const remove = document.createElement("button");
+    remove.className = "btn ghost";
+    remove.textContent = t("removeTheme");
+    remove.addEventListener("click", async () => {
+      if (!confirm(t("removeConfirm", item.name))) return;
+      await action({ action: "store_remove", id: item.id });
+      loadThemes();
+    });
+    actions.appendChild(remove);
+  }
+  card.appendChild(actions);
+  return card;
+}
+
+function renderGallery() {
+  if (!themes) return;
+  $("viewInstalled").textContent = t("viewInstalled", themes.installed.length);
+  $("viewStore").textContent = t("viewStore", themes.store.length);
+  document.querySelectorAll("#gallery .seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === galleryView)));
+  $("galleryHint").innerHTML = t(galleryView === "installed" ? "installedHint" : "storeHint");
+  const query = $("themeSearch").value.trim().toLowerCase();
+  const orient = $("themeOrient").value;
+  const list = (galleryView === "installed" ? themes.installed : themes.store).filter((item) =>
+    (!orient || item.orientation === orient) &&
+    (!query || item.name.toLowerCase().includes(query) || (item.author || "").toLowerCase().includes(query)));
+  const grid = $("themeGrid");
+  grid.innerHTML = "";
+  if (!list.length) {
+    const empty = document.createElement("p");
+    empty.className = "hint";
+    empty.textContent = t("noMatch");
+    grid.appendChild(empty);
+  }
+  list.slice(0, galleryLimit).forEach((item) => grid.appendChild(themeCard(item, galleryView === "installed")));
+  $("moreThemes").hidden = list.length <= galleryLimit;
+  $("moreThemes").textContent = t("moreThemes", list.length - galleryLimit);
+}
+
+async function loadThemes() {
+  try {
+    const r = await fetch("/api/themes", { cache: "no-store" });
+    if (r.ok) { themes = await r.json(); renderGallery(); }
+  } catch (e) { /* the state refresh reports lost connections */ }
+}
+
+document.querySelectorAll("#gallery .seg button").forEach((b) => b.addEventListener("click", () => {
+  galleryView = b.dataset.view;
+  galleryLimit = 24;
+  renderGallery();
+}));
+$("themeSearch").addEventListener("input", () => { galleryLimit = 24; renderGallery(); });
+$("themeOrient").addEventListener("change", () => { galleryLimit = 24; renderGallery(); });
+$("moreThemes").addEventListener("click", () => { galleryLimit += 24; renderGallery(); });
+$("applyTheme").addEventListener("click", () => setTimeout(loadThemes, 500));
+
+loadThemes();
 refresh();
 refreshPreview();
 setInterval(() => { if (document.visibilityState === "visible") refresh(); }, 5000);
