@@ -1,0 +1,21 @@
+[Unit]
+Description=iGam3 M1 built-in screen - stats dashboard or fixed picture (turing-smart-screen-python)
+Documentation=file://%h/igam3-screen/README.md
+# Keep retrying forever: the screen may appear late at boot or re-enumerate after a reset
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=%h/igam3-screen/app
+# "run" reads ~/igam3-screen/settings.yaml, then shows a picture or execs app/main.py (stats dashboard)
+ExecStart=%h/igam3-screen/.venv/bin/python %h/igam3-screen/tools/igam3_screen.py run
+Environment=PYTHONUNBUFFERED=1
+# Run headless: no tray icon tied to the desktop session
+UnsetEnvironment=DISPLAY WAYLAND_DISPLAY
+Restart=always
+RestartSec=5
+# On SIGTERM main.py turns the screen off, then flushes the serial queue (5 s max)
+TimeoutStopSec=15
+
+[Install]
+WantedBy=default.target

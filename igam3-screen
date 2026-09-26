@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Launcher: runs the manager with the project's virtualenv (works through the ~/.local/bin symlink too)
+DIR="$(dirname "$(readlink -f "$0")")"
+exec "$DIR/.venv/bin/python" "$DIR/tools/igam3_screen.py" "$@"

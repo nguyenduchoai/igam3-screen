@@ -1,0 +1,15 @@
+igam3-screen - quản lý màn hình 3.5" (Turing Smart Screen / TURZX, USB 1a86:5722) của máy iGam3 M1 trên Ubuntu
+
+Thành phần và giấy phép
+-----------------------
+- app/: turing-smart-screen-python 3.10.0, © Matthieu Houdebine và cộng sự, GPL-3.0-or-later
+  https://github.com/mathoudebine/turing-smart-screen-python
+  Đã sửa: library/sensors/sensors_custom.py (số liệu của theme iGam3), config.yaml, thêm theme res/themes/iGam3.
+- tools/, theme iGam3, bộ cài (install.sh, setup-root.sh...): dùng thư viện ở trên nên cũng phát hành theo
+  GPL-3.0-or-later. Toàn văn giấy phép: file LICENSE.
+- Font trong app/res/fonts/: Roboto và Roboto Mono (Apache-2.0), JetBrains Mono và Generale Mono (SIL OFL-1.1).
+  Giấy phép nằm trong từng thư mục font.
+- Thư viện Python (trong wheels/ của bộ cài Linux: Pillow, numpy, psutil, PyYAML, pyserial, babel, ruamel.yaml, qrcode, requests...)
+  giữ giấy phép riêng của từng gói, ghi trong metadata của mỗi file .whl.
+
+Khi đưa bộ cài cho người khác, giữ nguyên các file LICENSE/NOTICE này. Mã nguồn đã nằm sẵn trong bộ cài.

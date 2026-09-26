@@ -1,0 +1,3 @@
+@echo off
+rem igam3-screen command for Windows: igam3-screen status, igam3-screen panel, igam3-screen --help ...
+"%~dp0.venv\Scripts\python.exe" "%~dp0tools\igam3_screen.py" %*

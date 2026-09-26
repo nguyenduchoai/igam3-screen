@@ -1,0 +1,14 @@
+# Tạo ra khi cài / chạy trên từng máy, không đưa lên git
+.venv/
+__pycache__/
+*.pyc
+dist/
+wheels/
+settings.yaml
+web.yaml
+images/
+uploads/
+app/log.log
+app/screencap.png
+app/res/themes/iGam3/custom.yaml
+app/res/themes/iGam3/photo.*
