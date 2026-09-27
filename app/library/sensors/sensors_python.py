@@ -34,6 +34,7 @@ import GPUtil
 import psutil
 
 import library.sensors.sensors as sensors
+from library.sensors.sensors_intel_gpu import GpuIntel
 from library.log import logger
 
 # AMD GPU on Linux
@@ -55,6 +56,7 @@ class GpuType(IntEnum):
     UNSUPPORTED = auto()
     AMD = auto()
     NVIDIA = auto()
+    INTEL = auto()  # integrated graphics, Linux i915 (igam3-screen: sensors_intel_gpu.py)
 
 
 DETECTED_GPU = GpuType.UNSUPPORTED
@@ -190,6 +192,8 @@ class Gpu(sensors.Gpu):
             return GpuAmd.stats()
         elif DETECTED_GPU == GpuType.NVIDIA:
             return GpuNvidia.stats()
+        elif DETECTED_GPU == GpuType.INTEL:
+            return GpuIntel.stats()
         else:
             return math.nan, math.nan, math.nan, math.nan, math.nan
 
@@ -199,6 +203,8 @@ class Gpu(sensors.Gpu):
             return GpuAmd.fps()
         elif DETECTED_GPU == GpuType.NVIDIA:
             return GpuNvidia.fps()
+        elif DETECTED_GPU == GpuType.INTEL:
+            return GpuIntel.fps()
         else:
             return -1
 
@@ -208,6 +214,8 @@ class Gpu(sensors.Gpu):
             return GpuAmd.fan_percent()
         elif DETECTED_GPU == GpuType.NVIDIA:
             return GpuNvidia.fan_percent()
+        elif DETECTED_GPU == GpuType.INTEL:
+            return GpuIntel.fan_percent()
         else:
             return math.nan
 
@@ -217,6 +225,8 @@ class Gpu(sensors.Gpu):
             return GpuAmd.frequency()
         elif DETECTED_GPU == GpuType.NVIDIA:
             return GpuNvidia.frequency()
+        elif DETECTED_GPU == GpuType.INTEL:
+            return GpuIntel.frequency()
         else:
             return math.nan
 
@@ -231,6 +241,10 @@ class Gpu(sensors.Gpu):
         elif GpuAmd.is_available():
             logger.info("Detected AMD GPU(s)")
             DETECTED_GPU = GpuType.AMD
+        # Otherwise, the Intel integrated graphics
+        elif GpuIntel.is_available():
+            logger.info("Detected Intel integrated GPU")
+            DETECTED_GPU = GpuType.INTEL
         else:
             logger.warning("No supported GPU found")
             DETECTED_GPU = GpuType.UNSUPPORTED

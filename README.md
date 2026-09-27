@@ -25,6 +25,8 @@ management tools and installers made for the iGam3.
   to phones on your local network (with a password) when you want to.
 - **QR code** on the small screen to open the panel from a phone, and a **Ctrl+Alt+Q** shortcut.
 - **Console mode** (Linux): use the computer without an HDMI monitor, with a USB keyboard and the small screen.
+- **GPU data of Intel integrated graphics** (Linux) for the themes that show a GPU: load, memory, frequency,
+  temperature. turing-smart-screen-python itself only reads NVIDIA and AMD cards.
 - **English and Vietnamese**, following the language of the system.
 - **One-file installer** for Ubuntu that works without Internet; running it again upgrades and keeps your settings.
 
@@ -55,11 +57,11 @@ A line with `QinHeng Electronics UsbMonitor` means it does.
    [Releases](https://github.com/nguyenduchoai/igam3-screen/releases) page.
 2. Open a terminal as your **normal user** (do not type `sudo`) and run:
    ```bash
-   bash igam3-screen-installer-1.2.0.run
+   bash igam3-screen-installer-1.3.0.run
    ```
    You can set the title and the language right away:
    ```bash
-   bash igam3-screen-installer-1.2.0.run --title "My node" --tag "DePIN NODE" --lang en
+   bash igam3-screen-installer-1.3.0.run --title "My node" --tag "DePIN NODE" --lang en
    ```
 3. Type your sudo password when asked. About 10 seconds later the small screen shows the dashboard.
 
@@ -108,6 +110,7 @@ Differences with Ubuntu:
 - **No console mode.**
 - **No CPU temperature**: Windows only gives it to administrator programs.
 - **Ping is measured with a TCP connection**, since a real ping needs administrator rights.
+- **GPU data only for NVIDIA and AMD cards**, not for Intel integrated graphics.
 - The first time the panel is opened to the local network, Windows may ask whether Python may use the network: allow it
   for *Private networks*.
 
@@ -187,7 +190,9 @@ and some use artwork of games or anime: keep them for your own screen and ask th
 Themes that need their author's Python code, or fonts that were never published, are left out.
 
 Good to know:
-- GPU fields need an NVIDIA or AMD graphics card. With Intel graphics (like the iGam3 M1) they stay empty.
+- GPU fields work with NVIDIA and AMD cards and, on Linux, with Intel integrated graphics like the iGam3 M1's: load
+  and memory of the programs that use the GPU, frequency, and the temperature of the chip (integrated graphics have no
+  sensor of their own). On Windows, only NVIDIA and AMD cards.
 - When a theme shows a single network card (LAN or Wi-Fi), it shows the one that carries the traffic.
 - Maintainers refresh the catalog with `python packaging/theme_catalog.py` (reads the discussions, then installs and
   runs every theme in the screen simulator).
@@ -269,7 +274,7 @@ Until your next login after installing, the `igam3-screen` command is not in the
 | Screen not found | `lsusb -d 1a86:5722`; reconnect the internal USB cable if there is one, or restart the computer |
 | Windows: the screen does not start | close the TURZX app; check Device Manager > Ports (COM & LPT); `igam3-screen logs` |
 | The phone cannot connect | same network? `igam3-screen web` tells whether the panel is open; the IP may have changed (see the NETWORK block) |
-| A community theme leaves some fields empty | GPU fields need an NVIDIA/AMD card; other fields may need data your computer does not have |
+| A theme leaves some fields empty | the computer does not provide that value (FPS, fan speed, or GPU fields on Windows with Intel graphics) |
 | Details of an error | `igam3-screen logs -n 100` |
 
 ## Project layout
@@ -301,7 +306,7 @@ bash packaging/build.sh
 
 This makes `dist/igam3-screen-installer-<VERSION>.run` (Linux, libraries included) and
 `dist/igam3-screen-windows-<VERSION>.zip`. Publish both as a GitHub release, for example with the
-[GitHub CLI](https://cli.github.com/): `gh release create v1.2.0 dist/*`.
+[GitHub CLI](https://cli.github.com/): `gh release create v1.3.0 dist/*`.
 
 ## License and credits
 

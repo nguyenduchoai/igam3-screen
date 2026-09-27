@@ -23,6 +23,8 @@ rồi thêm theme, công cụ quản lý và bộ cài riêng cho iGam3.
   trong mạng LAN (có mật khẩu) khi bạn muốn.
 - **Mã QR** trên màn nhỏ để mở giao diện từ điện thoại, và phím tắt **Ctrl+Alt+Q**.
 - **Chế độ Dòng lệnh** (Linux): dùng máy không cần màn HDMI, cắm bàn phím USB rồi đăng nhập ngay trên màn nhỏ.
+- **Số liệu GPU của đồ hoạ Intel onboard** (Linux) cho các theme có ô GPU: tải, bộ nhớ, xung, nhiệt độ. Bản gốc
+  turing-smart-screen-python chỉ đọc được card NVIDIA và AMD.
 - **Tiếng Việt và tiếng Anh**, tự theo ngôn ngữ của máy.
 - **Bộ cài một file** cho Ubuntu, cài được không cần Internet; chạy lại là nâng cấp mà vẫn giữ cấu hình.
 
@@ -52,11 +54,11 @@ Kết quả có dòng `QinHeng Electronics UsbMonitor` là đúng.
 1. Vào trang [Releases](https://github.com/nguyenduchoai/igam3-screen/releases), tải file `igam3-screen-installer-<phiên bản>.run`.
 2. Mở Terminal bằng **tài khoản thường** (không gõ `sudo`) và chạy:
    ```bash
-   bash igam3-screen-installer-1.2.0.run
+   bash igam3-screen-installer-1.3.0.run
    ```
    Có thể đặt sẵn tiêu đề và ngôn ngữ:
    ```bash
-   bash igam3-screen-installer-1.2.0.run --title "Tên máy" --tag "DePIN NODE" --lang vi
+   bash igam3-screen-installer-1.3.0.run --title "Tên máy" --tag "DePIN NODE" --lang vi
    ```
 3. Nhập mật khẩu sudo khi được hỏi. Khoảng 10 giây sau, màn nhỏ hiện bảng thông số.
 
@@ -103,6 +105,7 @@ Khác biệt so với Ubuntu:
 - **Không có chế độ Dòng lệnh.**
 - **Không đọc nhiệt độ CPU**, vì Windows cần quyền admin cho việc này.
 - **Ping đo bằng kết nối TCP**, vì ping thật cần quyền admin.
+- **Số liệu GPU chỉ có với card NVIDIA và AMD**, không đọc được đồ hoạ Intel onboard.
 - Lần đầu mở giao diện cho mạng LAN, Windows có thể hỏi cho phép Python dùng mạng: chọn *Private networks*.
 
 ## Sử dụng
@@ -180,7 +183,9 @@ game hoặc anime: hãy dùng cho màn hình của bạn, và hỏi tác giả t
 tác giả, hoặc cần font không được công bố, thì không có trong danh sách.
 
 Cần biết:
-- Ô GPU cần card NVIDIA hoặc AMD. Máy chỉ có đồ hoạ Intel (như iGam3 M1) thì các ô đó để trống.
+- Ô GPU đọc được card NVIDIA, AMD, và trên Linux cả đồ hoạ Intel onboard như của iGam3 M1: tải và bộ nhớ của các
+  chương trình đang dùng GPU, xung, và nhiệt độ của chip (đồ hoạ onboard không có cảm biến riêng). Trên Windows chỉ
+  đọc được card NVIDIA và AMD.
 - Theme chỉ hiện một card mạng (LAN hoặc Wi-Fi) sẽ tự hiện card đang có kết nối.
 - Người duy trì làm mới danh sách bằng `python packaging/theme_catalog.py` (đọc mục Themes, rồi cài và chạy thử từng
   theme trên màn giả lập).
@@ -262,7 +267,7 @@ Trước lần đăng nhập đầu tiên sau khi cài, lệnh `igam3-screen` ch
 | Không thấy màn | `lsusb -d 1a86:5722`; thử rút cắm lại cáp USB bên trong (nếu có) hoặc khởi động lại máy |
 | Windows: màn không chạy | tắt app TURZX; xem Device Manager > Ports (COM & LPT); `igam3-screen logs` |
 | Điện thoại không vào được | máy và điện thoại cùng mạng? `igam3-screen web` xem đã mở LAN chưa; IP có thể đã đổi (xem ô MẠNG trên màn) |
-| Theme cộng đồng để trống vài ô | ô GPU cần card NVIDIA/AMD; ô khác có thể cần số liệu mà máy bạn không có |
+| Theme để trống vài ô | máy không có số liệu đó (FPS, tốc độ quạt, hoặc ô GPU trên Windows với đồ hoạ Intel) |
 | Xem lỗi chi tiết | `igam3-screen logs -n 100` |
 
 ## Cấu trúc
@@ -294,7 +299,7 @@ bash packaging/build.sh
 
 Lệnh này tạo `dist/igam3-screen-installer-<VERSION>.run` (Linux, kèm thư viện) và `dist/igam3-screen-windows-<VERSION>.zip`.
 Đưa hai file đó lên một bản phát hành trên GitHub (Releases), ví dụ bằng
-[GitHub CLI](https://cli.github.com/): `gh release create v1.2.0 dist/*`.
+[GitHub CLI](https://cli.github.com/): `gh release create v1.3.0 dist/*`.
 
 ## Giấy phép và ghi công
 

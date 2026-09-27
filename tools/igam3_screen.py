@@ -764,10 +764,10 @@ def cmd_store(args):
         except (theme_store.StoreError, OSError) as e:
             die(tr(f"không cài được theme: {e}", f"cannot install the theme: {e}"))
         print(tr(f"Đã cài theme {name}. Nguồn: {entry['discussion']}", f"Installed the theme {name}. Source: {entry['discussion']}"))
-        if entry.get("gpu"):
-            print(tr("Theme có ô GPU: cần card NVIDIA hoặc AMD, máy chỉ có đồ hoạ Intel (như iGam3 M1) thì ô đó để trống.",
-                     "The theme shows GPU data: it needs an NVIDIA or AMD card, with Intel graphics (like the iGam3 M1) "
-                     "those fields stay empty."))
+        if entry.get("gpu") and WINDOWS:
+            print(tr("Theme có ô GPU: trên Windows cần card NVIDIA hoặc AMD, đồ hoạ Intel onboard thì ô đó để trống.",
+                     "The theme shows GPU data: on Windows it needs an NVIDIA or AMD card, with Intel graphics those "
+                     "fields stay empty."))
         if args.use:
             cmd_theme(argparse.Namespace(name=name))
         return

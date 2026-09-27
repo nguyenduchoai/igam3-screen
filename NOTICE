@@ -4,8 +4,8 @@ Components and licenses
 -----------------------
 - app/: turing-smart-screen-python 3.10.0, (c) Matthieu Houdebine and contributors, GPL-3.0-or-later
   https://github.com/mathoudebine/turing-smart-screen-python
-  Modified: library/sensors/sensors_custom.py (data sources of the iGam3 theme), config.yaml; added the theme
-  res/themes/iGam3.
+  Modified: library/sensors/sensors_custom.py (data sources of the iGam3 theme), library/sensors/sensors_python.py
+  (Intel integrated graphics), config.yaml; added library/sensors/sensors_intel_gpu.py and the theme res/themes/iGam3.
 - tools/, the iGam3 theme and the installers (install.sh, setup-root.sh...): they use the library above, so they are
   released under GPL-3.0-or-later too. Full license text: the LICENSE file.
 - Fonts in app/res/fonts/: Roboto and Roboto Mono (Apache-2.0), JetBrains Mono and Generale Mono (SIL OFL-1.1).
