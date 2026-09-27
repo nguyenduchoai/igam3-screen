@@ -14,7 +14,8 @@ Components and licenses
   qrcode, requests...) keep their own licenses, recorded in the metadata of each .whl file.
 
 - Weather: data by Open-Meteo.com (https://open-meteo.com/), licensed CC BY 4.0, free for non-commercial use; the clock
-  screen credits it. Lunar calendar: algorithm of Hồ Ngọc Đức (after Jean Meeus, "Astronomical Algorithms").
+  screen credits it. Lunar calendar: algorithm of Hồ Ngọc Đức (after Jean Meeus, "Astronomical Algorithms"); moon
+  phases: Jean Meeus, chapter 49. The Đông Sơn drum and lotus ornaments of the Vietnam Theme are drawn by the code.
 - Community themes (tools/theme_catalog.json): NOT included. The catalog only lists where their authors published them
   in the Themes discussions of turing-smart-screen-python, with checksums; "igam3-screen store install" downloads a
   theme from there onto the user's computer. Each theme belongs to its author.

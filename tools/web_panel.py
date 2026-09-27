@@ -30,7 +30,7 @@ WEB_DIR = core.TOOLS / "web"
 UPLOADS = core.ROOT / "uploads"
 SPLASH_PREVIEW = core.RUNTIME / "splash-preview.png"
 MAX_UPLOAD = 20 * 1024 * 1024
-UPLOAD_SLOTS = ("image", "background", "logo", "photo")
+UPLOAD_SLOTS = ("image", "background", "logo", "photo", "themelogo")
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
 LOCAL_CLIENTS = {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
 LOCAL_HOST_NAMES = {"localhost", "127.0.0.1", "[::1]"}
@@ -90,6 +90,30 @@ def themes_payload():
     return {"current": str(cfg["config"]["THEME"]), "installed": installed, "store": store}
 
 
+_vietnam = {"stats": None, "weather": None, "picture": None, "at": 0.0}
+
+
+def vietnam_preview():
+    """Picture of the Vietnam Theme with the current values, logo and weather (made again at most every 20 s)"""
+    import vietnam_screen
+    import weather
+    if _vietnam["picture"] and time.monotonic() - _vietnam["at"] < 20:
+        return _vietnam["picture"]
+    settings = core.load_settings()
+    if _vietnam["stats"] is None:
+        _vietnam["stats"] = vietnam_screen.Stats(core.active_interface, core.primary_ipv4)
+        _vietnam["weather"] = weather.Weather(core.RUNTIME / "weather.json", lambda: core.load_settings().get("weather") or None)
+    stats = _vietnam["stats"]
+    stats.read()
+    forecast, _ = _vietnam["weather"].snapshot()
+    image = vietnam_screen.VietnamScreen(core.theme_logo(settings)).render(
+        __import__("datetime").datetime.now(), stats.values, settings.get("weather") or None, forecast)
+    out = io.BytesIO()
+    image.save(out, "PNG")
+    _vietnam.update(picture=out.getvalue(), at=time.monotonic())
+    return _vietnam["picture"]
+
+
 def theme_thumbnail(name):
     """Small JPEG of a theme's preview picture, or None"""
     if name not in {t["name"] for t in core.themes_35()}:  # only real theme folders, never a path
@@ -141,10 +165,9 @@ def do_action(data):
         return run_cli("alerts", "--test")
     if action == "telegram_connect":
         try:
-            bot = core.connect_telegram(text("token"))
+            return True, core.connect_telegram(text("token"), text("chat") or None)
         except (ValueError, OSError) as e:
             return False, str(e)
-        return True, tr(f"Đã kết nối bot @{bot}: vừa gửi một tin thử vào Telegram.", f"Bot @{bot} connected: a test message was sent.")
     if action == "telegram_test":
         return run_cli("telegram", "--test")
     if action == "telegram_off":
@@ -156,6 +179,11 @@ def do_action(data):
         if data.get("night_action") == "off":
             return run_cli("night", window, "--screen-off")
         return run_cli("night", window, "--dim", str(int(data.get("brightness") or 0)))
+    if action == "theme_logo":
+        if data.get("remove"):
+            return run_cli("logo", "--none")
+        file = uploaded("themelogo")
+        return run_cli("logo", str(file)) if file else (False, tr("Chưa chọn logo", "No logo chosen"))
     if action == "store_install" and text("id"):
         return run_cli("store", "install", text("id"), "--use")
     if action == "store_remove" and text("id"):
@@ -296,6 +324,11 @@ class Handler(BaseHTTPRequestHandler):
             self.send_file(SPLASH_PREVIEW, "image/png")
         elif path == "/api/themes":
             self.send_json(themes_payload())
+        elif path == "/vietnam-preview.png":
+            try:
+                self.send_body(HTTPStatus.OK, vietnam_preview(), "image/png")
+            except Exception as e:  # a preview must never break the panel
+                self.send_body(HTTPStatus.INTERNAL_SERVER_ERROR, str(e).encode(), "text/plain; charset=utf-8")
         elif path == "/api/places":
             import weather
             query = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(self.path).query)).get("q", "").strip()[:80]

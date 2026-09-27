@@ -49,7 +49,8 @@ UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
 BIN_LINK = Path.home() / ".local" / "bin" / "igam3-screen"
 DESKTOP_FILE = Path.home() / ".local" / "share" / "applications" / "igam3-screen.desktop"
 USB_VID, USB_PID = 0x1A86, 0x5722
-MODES = {"stats": ("bảng thông số", "dashboard"), "clock": ("đồng hồ", "clock"), "image": ("ảnh cố định", "picture"),
+MODES = {"stats": ("bảng thông số", "dashboard"), "clock": ("đồng hồ", "clock"), "vietnam": ("Vietnam Theme", "Vietnam Theme"),
+         "image": ("ảnh cố định", "picture"),
          "console": ("dòng lệnh", "console"), "qr": ("mã QR", "QR code")}
 SHORTCUT_SCHEMA = "org.gnome.settings-daemon.plugins.media-keys"
 SHORTCUT_PATH = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/igam3-qr/"
@@ -503,6 +504,7 @@ def status_dict():
     custom = load_theme_custom()
     blocks = theme_generator().block_labels(i18n.LANG)
     telegram = screen_events.Telegram(TELEGRAM).config()
+    telegram_saved = screen_events.Telegram(TELEGRAM).saved()
     return {
         "platform": "windows" if WINDOWS else "linux",
         "language": i18n.LANG,
@@ -529,7 +531,8 @@ def status_dict():
         "weather": settings.get("weather") or {},
         "alerts": {**screen_events.merged(settings, "alerts"), "active": active_alerts()},
         "night": screen_events.merged(settings, "night"),
-        "telegram": {"connected": bool(telegram), "bot": (telegram or {}).get("bot", "")},
+        "telegram": {"connected": bool(telegram), "bot": (telegram or {}).get("bot", ""),
+                     "chat": (telegram or {}).get("chat_name", ""), "token_saved": bool(telegram_saved.get("token"))},
     }
 
 
@@ -682,14 +685,24 @@ def save_telegram(data):
     os.chmod(TELEGRAM, 0o600)
 
 
-def connect_telegram(token):
-    """Link a bot: (bot name, message) or ValueError"""
-    bot, chat = screen_events.telegram_link(token)
-    save_telegram({"token": token.strip(), "chat_id": chat, "bot": bot})
-    screen_events.Telegram.call(token.strip(), "sendMessage", chat_id=chat, text=tr(
+def connect_telegram(token="", chat_id=None):
+    """Link a bot (token, or the one already saved) to a chat: returns a message, raises ValueError"""
+    saved = screen_events.Telegram(TELEGRAM).saved()
+    token = (token or "").strip() or saved.get("token", "")
+    if not token:
+        raise ValueError(tr("cần mã bot từ @BotFather", "the bot token from @BotFather is needed"))
+    try:
+        bot, chat, chat_name = screen_events.telegram_link(token, chat_id)
+    except ValueError:
+        if token != saved.get("token"):  # keep the token: next time only the chat is missing
+            save_telegram({"token": token})
+        raise
+    save_telegram({"token": token, "chat_id": chat, "bot": bot, "chat_name": chat_name})
+    screen_events.Telegram.call(token, "sendMessage", chat_id=chat, text=tr(
         f"✅ igam3-screen trên {socket.gethostname()} đã kết nối. Cảnh báo sẽ được gửi vào đây.",
         f"✅ igam3-screen on {socket.gethostname()} is connected. Alerts will be sent here."))
-    return bot
+    return tr(f"Đã kết nối bot @{bot}, gửi vào: {chat_name}. Vừa gửi một tin thử.",
+              f"Bot @{bot} connected, sending to: {chat_name}. A test message was sent.")
 
 
 def cmd_telegram(args):
@@ -698,16 +711,18 @@ def cmd_telegram(args):
         TELEGRAM.unlink(missing_ok=True)
         print(tr("Đã gỡ Telegram.", "Telegram removed."))
         return
-    if args.token:
-        print(tr("1. Trong Telegram, nhắn cho @BotFather: /newbot, đặt tên, nhận mã bot.",
-                 "1. In Telegram, message @BotFather: /newbot, choose a name, get the bot token."))
-        print(tr("2. Nhắn một tin bất kỳ cho bot mới của bạn.", "2. Send any message to your new bot."))
-        token = getpass.getpass(tr("3. Dán mã bot vào đây (không hiện ra): ", "3. Paste the bot token here (hidden): "))
+    if args.token or args.chat:
+        token = ""
+        if args.token:
+            print(tr("1. Trong Telegram, nhắn cho @BotFather: /newbot, đặt tên, nhận mã bot.",
+                     "1. In Telegram, message @BotFather: /newbot, choose a name, get the bot token."))
+            print(tr("2. Chat riêng: nhắn một tin cho bot. Nhóm: thêm bot vào nhóm rồi dùng --chat <ID nhóm>.",
+                     "2. Private chat: send the bot a message. Group: add the bot to it, then use --chat <group ID>."))
+            token = getpass.getpass(tr("3. Dán mã bot vào đây (không hiện ra): ", "3. Paste the bot token here (hidden): "))
         try:
-            bot = connect_telegram(token)
+            print(connect_telegram(token, args.chat))
         except ValueError as e:
             die(str(e))
-        print(tr(f"Đã kết nối bot @{bot}: vừa gửi một tin thử.", f"Bot @{bot} connected: a test message was sent."))
         return
     config = telegram.config()
     if args.test:
@@ -720,9 +735,16 @@ def cmd_telegram(args):
             die(tr(f"không gửi được: {e}", f"cannot send: {e}"))
         print(tr("Đã gửi tin thử.", "Test message sent."))
         return
-    print("Telegram: " + (f"@{config.get('bot', '?')}" if config else tr("chưa kết nối", "not connected")))
-    print(tr("Kết nối: igam3-screen telegram --token   Thử: --test   Gỡ: --off",
-             "Connect: igam3-screen telegram --token   Test: --test   Remove: --off"))
+    saved = telegram.saved()
+    if config:
+        print(f"Telegram: @{config.get('bot', '?')} → {config.get('chat_name') or config['chat_id']}")
+    elif saved.get("token"):
+        print(tr("Telegram: đã có mã bot, chưa có nơi nhận: igam3-screen telegram --chat <ID nhóm/chat>",
+                 "Telegram: token saved, no chat yet: igam3-screen telegram --chat <group/chat ID>"))
+    else:
+        print("Telegram: " + tr("chưa kết nối", "not connected"))
+    print(tr("Kết nối: igam3-screen telegram --token [--chat ID]   Thử: --test   Gỡ: --off",
+             "Connect: igam3-screen telegram --token [--chat ID]   Test: --test   Remove: --off"))
 
 
 def night_summary(cfg):
@@ -758,6 +780,40 @@ def cmd_night(args):
     if not cfg["enabled"]:
         print(tr("Bật: igam3-screen night 22:00-06:00 --dim 10   (hoặc --screen-off)",
                  "Turn on: igam3-screen night 22:00-06:00 --dim 10   (or --screen-off)"))
+
+
+def theme_logo(settings):
+    """Logo of the Vietnam Theme (a file in images/), or None"""
+    name = (settings.get("vietnam") or {}).get("logo") or ""
+    path = ROOT / name if name else None
+    return str(path) if path and path.is_file() else None
+
+
+def cmd_logo(args):
+    """Small logo in the corner of the Vietnam Theme"""
+    settings = load_settings()
+    for old in IMAGES.glob("theme-logo.*"):
+        old.unlink()
+    if args.none:
+        settings["vietnam"] = {**(settings.get("vietnam") or {}), "logo": ""}
+        save_settings(settings)
+        print(tr("Vietnam Theme: không có logo", "Vietnam Theme: no logo"))
+    elif args.file:
+        path = checked_image_path(args.file)
+        IMAGES.mkdir(exist_ok=True)
+        dest = IMAGES / f"theme-logo{path.suffix.lower()}"
+        dest.write_bytes(path.read_bytes())
+        settings["vietnam"] = {**(settings.get("vietnam") or {}), "logo": str(dest.relative_to(ROOT))}
+        save_settings(settings)
+        print(tr(f"Vietnam Theme: logo {path.name}", f"Vietnam Theme: logo {path.name}"))
+    else:
+        logo = theme_logo(settings)
+        print(tr("Logo của Vietnam Theme: ", "Logo of the Vietnam Theme: ") + (Path(logo).name if logo else tr("không có", "none")))
+        print(tr("Đổi: igam3-screen logo <ảnh PNG>   Bỏ: igam3-screen logo --none",
+                 "Change: igam3-screen logo <PNG picture>   Remove: igam3-screen logo --none"))
+        return
+    if settings["mode"] == "vietnam":
+        restart_if_running()
 
 
 def cmd_status(args):
@@ -1387,6 +1443,16 @@ def cmd_run(_):
         run_clock(lcd, stop, lambda: settings_cache().get("weather") or None, RUNTIME / "weather.json", control)
         screen_events.finish(lcd, control)
         return
+    elif settings["mode"] == "vietnam":
+        from vietnam_screen import run_vietnam
+        stop = service_stop_event()
+        lcd = open_lcd("landscape")
+        control.attach(lcd)
+        print(tr("Màn chính: Vietnam Theme", "Main screen: Vietnam Theme"), flush=True)
+        run_vietnam(lcd, stop, lambda: settings_cache().get("weather") or None, RUNTIME / "weather.json", theme_logo(settings),
+                    active_interface, primary_ipv4, control)
+        screen_events.finish(lcd, control)
+        return
     elif settings["mode"] == "console" and not WINDOWS:
         from console_mirror import run_console
         stop = service_stop_event()
@@ -1479,6 +1545,12 @@ def main():
         "main screen = dashboard")
     add("clock", lambda a: cmd_mode(argparse.Namespace(mode="clock")), "màn hình chính = đồng hồ, thời tiết, lịch âm",
         "main screen = clock, weather, lunar calendar")
+    add("vietnam", lambda a: cmd_mode(argparse.Namespace(mode="vietnam")),
+        "màn hình chính = Vietnam Theme (sơn mài, trống đồng, lịch âm, pha trăng, thời tiết, thông số)",
+        "main screen = Vietnam Theme (lacquer, bronze drum, lunar calendar, moon phase, weather, system values)")
+    p = add("logo", cmd_logo, "logo nhỏ ở góc Vietnam Theme", "small logo in the corner of the Vietnam Theme")
+    p.add_argument("file", nargs="?", help=tr("ảnh logo (PNG nền trong suốt là đẹp nhất)", "logo picture (best: PNG with a transparent background)"))
+    p.add_argument("--none", action="store_true", help=tr("bỏ logo", "no logo"))
     p = add("weather", cmd_weather, "thành phố cho thời tiết trên màn đồng hồ (Open-Meteo, miễn phí)",
             "city of the weather on the clock screen (Open-Meteo, free)")
     p.add_argument("city", nargs="?", help=tr("tên thành phố, ví dụ \"Hà Nội\"", "city name, for example \"London\""))
@@ -1496,6 +1568,7 @@ def main():
     p.add_argument("--test", action="store_true", help=tr("hiện cảnh báo thử", "show a test alert"))
     p = add("telegram", cmd_telegram, "gửi cảnh báo qua bot Telegram của bạn", "send the alerts through your Telegram bot")
     p.add_argument("--token", action="store_true", help=tr("kết nối bot (hỏi mã bot)", "connect a bot (asks for its token)"))
+    p.add_argument("--chat", help=tr("ID nhóm/chat nhận cảnh báo, ví dụ -1001234567890", "group/chat ID for the alerts, like -1001234567890"))
     p.add_argument("--test", action="store_true", help=tr("gửi tin thử", "send a test message"))
     p.add_argument("--off", action="store_true", help=tr("gỡ bot", "remove the bot"))
     p = add("night", cmd_night, "hẹn giờ ban đêm: giảm sáng hoặc tắt màn", "night schedule: dim or turn off the screen")

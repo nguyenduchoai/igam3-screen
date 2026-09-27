@@ -19,7 +19,10 @@ management tools and installers made for the iGam3.
   picture**; 38 other 3.5" themes are included.
 - **Theme gallery**: the 39 bundled themes, plus **85 community themes** tested on this screen that install with one
   click from their authors' posts.
-- **5 kinds of main screen**, kept after a restart: dashboard, clock, fixed picture (PNG/JPG/GIF), QR code, text console.
+- **Vietnam Theme**: red lacquer and gold with Đông Sơn bronze drum patterns, solar and lunar calendars, a Swiss-watch
+  moon phase, the weather and every value of the computer, with your own small logo.
+- **6 kinds of main screen**, kept after a restart: dashboard, clock, Vietnam Theme, fixed picture (PNG/JPG/GIF), QR code,
+  text console.
 - **Clock screen**: time, date, Vietnamese lunar calendar with its holidays, and the weather of your city (Open-Meteo,
   free, no account).
 - **Alerts**: high CPU temperature, disk almost full, network lost or a service stopped: the screen turns red and bright,
@@ -62,11 +65,11 @@ A line with `QinHeng Electronics UsbMonitor` means it does.
    [Releases](https://github.com/nguyenduchoai/igam3-screen/releases) page.
 2. Open a terminal as your **normal user** (do not type `sudo`) and run:
    ```bash
-   bash igam3-screen-installer-1.4.0.run
+   bash igam3-screen-installer-1.5.0.run
    ```
    You can set the title and the language right away:
    ```bash
-   bash igam3-screen-installer-1.4.0.run --title "My node" --tag "DePIN NODE" --lang en
+   bash igam3-screen-installer-1.5.0.run --title "My node" --tag "DePIN NODE" --lang en
    ```
 3. Type your sudo password when asked. About 10 seconds later the small screen shows the dashboard.
 
@@ -151,7 +154,8 @@ other web sites.
 | Command | The small screen shows |
 |---|---|
 | `igam3-screen mode stats` | the dashboard |
-| `igam3-screen mode clock` | clock, lunar calendar and weather |
+| `igam3-screen mode clock` | clock, lunar calendar, moon phase and weather |
+| `igam3-screen mode vietnam` | the Vietnam Theme |
 | `igam3-screen image picture.png --keep` | a fixed picture (PNG/JPG, animated GIF). `--fill` fills the whole screen |
 | `igam3-screen mode qr` | a QR code that opens the web panel |
 | `igam3-screen mode console` | the text console tty3 (Linux only) |
@@ -233,10 +237,29 @@ igam3-screen mode clock
 ```
 
 The clock screen shows the time, the date, the Vietnamese lunar date with the names of the day, month and year, the
-lunar holidays (Tết, Mid-Autumn…), the weather now and a 3-day forecast, refreshed every 15 minutes. Without Internet
+lunar holidays (Tết, Mid-Autumn…), the phase of the moon in the moonphase window of Swiss watches, the weather now and
+a 3-day forecast, refreshed every 15 minutes. Without Internet
 it keeps the last forecast. The web panel has the same settings under **Clock & weather**.
 
 <p align="center"><img src="docs/screens.png" width="900" alt="Clock, alert and shutdown screens"></p>
+
+### Vietnam Theme
+
+<p align="center"><img src="docs/vietnam.png" width="480" alt="Vietnam Theme"></p>
+
+A main screen with a Vietnamese soul: red lacquer and gold leaf, the sun and flying Lạc birds of the Đông Sơn bronze
+drums, a lotus, the time, the solar date, the lunar date in the traditional way (*17 tháng Tám · Bính Ngọ*) with the
+can chi of the day and month and the lunar holidays, the moonphase window of Swiss watches (next full and new moon,
+share lit), the weather, and every value of the dashboard: CPU (load, temperature, clock), RAM, SSD, GPU (Intel
+integrated graphics too), network, uptime, ping, IP.
+
+```bash
+igam3-screen mode vietnam            # or: igam3-screen vietnam
+igam3-screen logo my-logo.png        # small logo in the corner, on a cream plate; --none removes it
+```
+
+The moon phase comes from the algorithms of Jean Meeus (new and full moons to the minute). The web panel has a
+**Vietnam Theme** section with a live preview, the logo and a button to use it.
 
 ### Alerts and Telegram
 
@@ -259,9 +282,13 @@ igam3-screen alerts off                               # or on
 
 To get the alerts on your phone, connect a Telegram bot of your own (optional):
 
-1. In Telegram, message **@BotFather**: `/newbot`, choose a name, and copy the bot token it gives.
-2. Send any message to your new bot.
-3. Run `igam3-screen telegram --token` and paste the token (or use the **Alerts** section of the web panel).
+1. In Telegram, message **@BotFather**: `/newbot`, choose a name, and copy the bot token it gives (a bot you already
+   have works too).
+2. To get the alerts in a **private chat**, send any message to the bot. For a **group**, add the bot to the group, then
+   either send `/start@your_bot` in the group, or give the group ID (open the group on web.telegram.org: the `-100…`
+   number in the address bar).
+3. Run `igam3-screen telegram --token` and paste the token, with `--chat <group ID>` for a group (or use the **Alerts**
+   section of the web panel, which has a field for the group ID).
 
 The bot then gets a message when an alert starts and when it is over. The token is kept in `telegram.yaml`, readable by
 your account only. `igam3-screen telegram --test` sends a test message, `--off` removes the bot.
@@ -312,6 +339,7 @@ lights up once the service runs (10–15 seconds after power on). Two ways to us
 | `igam3-screen weather "<city>"` | city of the weather on the clock screen |
 | `igam3-screen alerts` / `telegram --token` | alerts, Telegram bot |
 | `igam3-screen night 22:00-06:00 --dim 10` | night schedule |
+| `igam3-screen vietnam` / `logo <picture>` | Vietnam Theme, its logo |
 | `igam3-screen themes` / `store` | themes on this computer / community themes to install |
 | `igam3-screen test` | orientation test pattern (the arrow must point up) |
 | `igam3-screen off` | turn the screen off |
@@ -355,6 +383,7 @@ Until your next login after installing, the `igam3-screen` command is not in the
 | `tools/i18n.py` | English / Vietnamese |
 | `tools/clock_screen.py`, `tools/weather.py`, `tools/lunar.py` | clock screen, Open-Meteo weather, Vietnamese lunar calendar |
 | `tools/screen_events.py` | alerts, Telegram, night schedule, shutdown screen |
+| `tools/vietnam_screen.py`, `tools/moon.py` | Vietnam Theme, moon phase (Swiss-watch window) |
 | `tools/theme_store.py`, `tools/theme_catalog.json` | community themes: installer and catalog (built by `packaging/theme_catalog.py`) |
 | `tools/platform_support.py` | what differs between Linux (systemd) and Windows |
 | `install.sh`, `setup-root.sh`, `uninstall.sh` | install / permissions / uninstall on Ubuntu |
@@ -375,7 +404,7 @@ bash packaging/build.sh
 
 This makes `dist/igam3-screen-installer-<VERSION>.run` (Linux, libraries included) and
 `dist/igam3-screen-windows-<VERSION>.zip`. Publish both as a GitHub release, for example with the
-[GitHub CLI](https://cli.github.com/): `gh release create v1.4.0 dist/*`.
+[GitHub CLI](https://cli.github.com/): `gh release create v1.5.0 dist/*`.
 
 ## License and credits
 
@@ -384,5 +413,5 @@ This makes `dist/igam3-screen-installer-<VERSION>.run` (Linux, libraries include
   contributors.
 - Fonts: Roboto / Roboto Mono (Apache-2.0), JetBrains Mono / Generale Mono (SIL OFL-1.1). See [NOTICE](NOTICE).
 - Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0), free for non-commercial use. Lunar calendar
-  algorithm by Hồ Ngọc Đức, after Jean Meeus.
+  algorithm by Hồ Ngọc Đức; new and full moons after Jean Meeus, "Astronomical Algorithms".
 - Community project, **not affiliated** with iG3 / Gam3 Labs or TURZX. These names belong to their owners.

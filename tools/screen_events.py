@@ -190,13 +190,17 @@ class Telegram:
         self.pending = []
         self.lock = threading.Lock()
 
-    def config(self):
+    def saved(self):
+        """What telegram.yaml holds (a token alone while no chat is chosen yet)"""
         try:
             import yaml
-            data = yaml.safe_load(self.path.read_text(encoding="utf8")) or {}
-            return data if data.get("token") and data.get("chat_id") else None
+            return yaml.safe_load(self.path.read_text(encoding="utf8")) or {}
         except (OSError, ValueError, ImportError):
-            return None
+            return {}
+
+    def config(self):
+        data = self.saved()
+        return data if data.get("token") and data.get("chat_id") else None
 
     @classmethod
     def call(cls, token, method, **params):
@@ -228,14 +232,23 @@ class Telegram:
                 self.pending.pop(0)
 
 
-def telegram_link(token):
-    """(bot name, chat id) from the last message someone sent to the bot; ValueError with the reason otherwise"""
+CHAT_SOURCES = ("message", "edited_message", "channel_post", "edited_channel_post", "my_chat_member", "chat_member")
+
+
+def _chat_name(chat):
+    return chat.get("title") or " ".join(x for x in (chat.get("first_name"), chat.get("last_name")) if x) or \
+        chat.get("username") or str(chat.get("id"))
+
+
+def telegram_link(token, chat_id=None):
+    """(bot name, chat id, chat name) for the alerts; ValueError with what to do otherwise.
+    Without chat_id the chat comes from the last update the bot received: a message to the bot, a command in a group
+    (/start@bot), or the bot being added to a group or channel."""
     token = token.strip()
     if not re.fullmatch(r"\d+:[\w-]{30,}", token):
         raise ValueError(tr("mã bot không đúng dạng (ví dụ 123456789:AAE…)", "the bot token looks wrong (like 123456789:AAE…)"))
     try:
         bot = Telegram.call(token, "getMe")
-        updates = Telegram.call(token, "getUpdates", limit=100)
     except urllib.error.HTTPError as e:
         if e.code in (401, 404):
             raise ValueError(tr("Telegram không nhận mã bot này: kiểm tra lại mã từ @BotFather",
@@ -243,11 +256,42 @@ def telegram_link(token):
         raise ValueError(tr(f"Telegram báo lỗi: {e}", f"Telegram error: {e}"))
     except OSError as e:
         raise ValueError(tr(f"không kết nối được Telegram: {e}", f"cannot reach Telegram: {e}"))
-    chats = [u["message"]["chat"] for u in updates if u.get("message", {}).get("chat")]
+    name = bot["username"]
+    if chat_id not in (None, ""):
+        text = str(chat_id).strip()
+        if not re.fullmatch(r"-?\d+|@\w{4,}", text):
+            raise ValueError(tr("ID nhóm/chat là một số, ví dụ -1001234567890", "a group/chat ID is a number, like -1001234567890"))
+        # Telegram Web shows supergroups as -123…, the Bot API wants -100123…
+        candidates = [text] + ([f"-100{text[1:]}"] if text.startswith("-") and not text.startswith("-100") else [])
+        for candidate in candidates:
+            try:
+                chat = Telegram.call(token, "getChat", chat_id=candidate)
+                return name, chat["id"], _chat_name(chat)
+            except urllib.error.HTTPError:
+                continue
+            except OSError as e:
+                raise ValueError(tr(f"không kết nối được Telegram: {e}", f"cannot reach Telegram: {e}"))
+        raise ValueError(tr(f"bot @{name} không vào được chat {text}: thêm bot vào nhóm đó (hoặc nhắn cho bot trước) rồi thử lại",
+                            f"the bot @{name} cannot reach the chat {text}: add it to that group (or message it first), then retry"))
+    try:
+        updates = Telegram.call(token, "getUpdates", limit=100,
+                                allowed_updates=json.dumps(list(CHAT_SOURCES)))
+    except urllib.error.HTTPError as e:
+        if e.code == 409:  # a webhook, or another program, reads this bot's messages
+            raise ValueError(tr(f"bot @{name} đang được một hệ thống khác dùng (webhook): nhập ID nhóm/chat vào ô bên cạnh",
+                                f"the bot @{name} is used by another system (webhook): type the group/chat ID in the field next to it"))
+        raise ValueError(tr(f"Telegram báo lỗi: {e}", f"Telegram error: {e}"))
+    except OSError as e:
+        raise ValueError(tr(f"không kết nối được Telegram: {e}", f"cannot reach Telegram: {e}"))
+    chats = [u[kind]["chat"] for u in updates for kind in CHAT_SOURCES if isinstance(u.get(kind), dict) and u[kind].get("chat")]
     if not chats:
-        raise ValueError(tr(f"chưa thấy tin nhắn nào: mở Telegram, nhắn cho bot @{bot['username']} một tin bất kỳ rồi thử lại",
-                            f"no message yet: in Telegram, send any message to the bot @{bot['username']}, then try again"))
-    return bot["username"], chats[-1]["id"]
+        raise ValueError(tr(
+            f"bot @{name} chưa nhận được tin nào. Chat riêng: nhắn cho bot một tin. Nhóm: thêm bot vào nhóm rồi gõ "
+            f"/start@{name} trong nhóm, hoặc nhập ID nhóm (dạng -100…) vào ô ID. Sau đó bấm Kết nối lại.",
+            f"the bot @{name} has not received anything. Private chat: send it a message. Group: add it to the group and "
+            f"type /start@{name} there, or type the group ID (like -100…) in the ID field. Then press Connect again."))
+    chat = chats[-1]
+    return name, chat["id"], _chat_name(chat)
 
 
 # ---------------------------------------------------------------- pictures

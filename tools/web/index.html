@@ -93,6 +93,9 @@
   .badge { font-size: 11px; color: var(--accent); border: 1px solid #155e6e; border-radius: 999px; padding: 0 6px; margin-left: 4px; }
   .more { margin-top: 12px; }
   .places { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .vn { display: grid; grid-template-columns: minmax(0, 480px) 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 760px) { .vn { grid-template-columns: 1fr; } }
+  .vn-preview { width: 100%; aspect-ratio: 3 / 2; border-radius: 10px; border: 1px solid var(--border); background: #3a0a08; display: block; }
   .places .btn { font-weight: 600; }
   .inline { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   input[type=number], input[type=time] { width: 100%; background: var(--card2); color: var(--text); border: 1px solid var(--border);
@@ -137,6 +140,7 @@
     <div class="seg" role="group" data-t-label="modeGroup">
       <button data-mode="stats" data-t="modeStats"></button>
       <button data-mode="clock" data-t="modeClock"></button>
+      <button data-mode="vietnam" data-t="modeVietnam"></button>
       <button data-mode="image" data-t="modeImage"></button>
       <button data-mode="console" data-t="modeConsole"></button>
       <button data-mode="qr" data-t="modeQr"></button>
@@ -198,6 +202,23 @@
     <div class="actions more"><button class="btn ghost" id="moreThemes" hidden></button></div>
   </section>
 
+  <section class="card span2" id="vietnamCard">
+    <h2>Vietnam Theme</h2>
+    <div class="vn">
+      <img id="vnPreview" class="vn-preview" data-t-alt="vnAlt">
+      <div>
+        <p class="hint" data-t="vnAbout"></p>
+        <label class="field" for="vnLogo" data-t="vnLogo"></label>
+        <div class="picker"><input type="file" id="vnLogo" accept="image/*"><label class="btn ghost" for="vnLogo" data-t="choose"></label><span class="fname" data-t="noFile"></span></div>
+        <div class="actions">
+          <button class="btn" id="vnUse" data-t="vnUse"></button>
+          <button class="btn ghost" id="vnSetLogo" data-t="vnSetLogo"></button>
+          <button class="btn ghost" id="vnNoLogo" data-t="vnNoLogo"></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="card" id="clockCard">
     <h2 data-t="clockTitle"></h2>
     <p class="hint" id="cityNow"></p>
@@ -253,10 +274,13 @@
     <p class="hint" id="telegramStatus"></p>
     <div id="telegramSetup">
       <p class="hint" data-t-html="telegramSteps"></p>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <input type="password" id="botToken" data-t-placeholder="botToken" data-t-label="botToken" autocomplete="off">
-        <button class="btn" id="telegramConnect" data-t="connect"></button>
+      <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin-top:8px">
+        <div><label class="field" for="botToken" data-t="botTokenLabel"></label>
+          <input type="password" id="botToken" data-t-placeholder="botToken" autocomplete="off"></div>
+        <div><label class="field" for="chatId" data-t="chatIdLabel"></label>
+          <input type="text" id="chatId" data-t-placeholder="chatId" maxlength="40" autocomplete="off"></div>
       </div>
+      <div class="actions"><button class="btn" id="telegramConnect" data-t="connect"></button></div>
     </div>
     <div class="actions" id="telegramActions">
       <button class="btn ghost" id="telegramTest" data-t="telegramTest"></button>
@@ -400,6 +424,16 @@ const TEXT = {
   pwMismatch: ["Hai lần nhập không khớp", "The two entries differ"],
   galleryTitle: ["Thư viện theme", "Theme gallery"],
   modeClock: ["Đồng hồ", "Clock"],
+  modeVietnam: ["Việt Nam", "Vietnam"],
+  hint_vietnam: ["Vietnam Theme: sơn mài đỏ son, trống đồng Đông Sơn, lịch âm dương, pha trăng kiểu đồng hồ Thụy Sĩ, thời tiết và mọi thông số của máy.",
+                 "Vietnam Theme: red lacquer, Đông Sơn bronze drum, solar and lunar calendars, a Swiss-watch moon phase, the weather and every value of the computer."],
+  vnAlt: ["Xem trước Vietnam Theme", "Vietnam Theme preview"],
+  vnAbout: ["Màn hình mang bản sắc Việt: nền sơn mài đỏ son và vàng kim, hoa văn trống đồng Đông Sơn, giờ, ngày dương lịch, âm lịch có can chi và ngày lễ, pha Mặt Trăng kiểu đồng hồ Thụy Sĩ, thời tiết, CPU, RAM, SSD, GPU, mạng. Thời tiết lấy theo thành phố ở mục Đồng hồ & thời tiết.",
+            "A screen with a Vietnamese soul: red lacquer and gold, Đông Sơn bronze drum patterns, the time, solar date, lunar date with can chi and holidays, a Swiss-watch moon phase, the weather, CPU, RAM, SSD, GPU and network. The weather uses the city of the Clock & weather section."],
+  vnLogo: ["Logo nhỏ ở góc (PNG nền trong suốt là đẹp nhất)", "Small logo in the corner (best: PNG with a transparent background)"],
+  vnUse: ["Dùng Vietnam Theme", "Use the Vietnam Theme"],
+  vnSetLogo: ["Đặt logo", "Set the logo"],
+  vnNoLogo: ["Bỏ logo", "No logo"],
   hint_clock: ["Màn nhỏ hiện giờ, ngày, lịch âm và thời tiết. Đặt thành phố ở mục Đồng hồ & thời tiết.",
                "The small screen shows the time, date, lunar calendar and weather. Set the city under Clock & weather."],
   clockTitle: ["Đồng hồ & thời tiết", "Clock & weather"],
@@ -434,12 +468,17 @@ const TEXT = {
   alertsOk: ["Mọi thứ đang ổn.", "All good."],
   alertsOffNow: ["Cảnh báo đang tắt.", "Alerts are off."],
   telegramTitle: ["Gửi cảnh báo qua Telegram", "Alerts on Telegram"],
-  telegramConnected: ["Đã kết nối bot @{0}: cảnh báo và tin \"hết cảnh báo\" được gửi vào Telegram của bạn.",
-                      "Connected to the bot @{0}: alerts and \"alert over\" messages go to your Telegram."],
+  telegramConnected: ["Đã kết nối bot @{0}, gửi vào: {1}. Cảnh báo và tin \"hết cảnh báo\" sẽ đến đó.",
+                      "Connected to the bot @{0}, sending to: {1}. Alerts and \"alert over\" messages go there."],
   telegramNone: ["Chưa kết nối (không bắt buộc).", "Not connected (optional)."],
-  telegramSteps: ["1. Trong Telegram, nhắn cho <b>@BotFather</b>: <code>/newbot</code>, đặt tên, nhận mã bot.<br>2. Nhắn một tin bất kỳ cho bot mới của bạn.<br>3. Dán mã bot vào đây rồi bấm Kết nối.",
-                  "1. In Telegram, message <b>@BotFather</b>: <code>/newbot</code>, choose a name, get the bot token.<br>2. Send any message to your new bot.<br>3. Paste the token here and press Connect."],
-  botToken: ["Mã bot, dạng 123456789:AAE…", "Bot token, like 123456789:AAE…"],
+  telegramSteps: ["1. Mã bot: nhắn <b>@BotFather</b> lệnh <code>/newbot</code> (hoặc dùng mã của bot bạn đã có).<br>2. Gửi vào <b>chat riêng</b>: nhắn cho bot một tin. Gửi vào <b>nhóm</b>: thêm bot vào nhóm, rồi nhập ID nhóm (mở nhóm trên web.telegram.org, số dạng <code>-100…</code> trên thanh địa chỉ) hoặc gõ <code>/start@tên_bot</code> trong nhóm.<br>3. Dán mã bot (và ID nhóm nếu có), bấm Kết nối.",
+                  "1. Bot token: send <b>@BotFather</b> the command <code>/newbot</code> (or use the token of a bot you already have).<br>2. To a <b>private chat</b>: send the bot a message. To a <b>group</b>: add the bot to it, then type the group ID (open the group on web.telegram.org, the <code>-100…</code> number in the address bar) or send <code>/start@bot_name</code> in the group.<br>3. Paste the token (and the group ID if any), press Connect."],
+  botToken: ["123456789:AAE…", "123456789:AAE…"],
+  botTokenLabel: ["Mã bot", "Bot token"],
+  chatIdLabel: ["ID nhóm/chat (không bắt buộc)", "Group/chat ID (optional)"],
+  chatId: ["-1001234567890", "-1001234567890"],
+  telegramTokenSaved: ["Đã lưu mã bot, chưa có nơi nhận tin: nhập ID nhóm/chat (hoặc nhắn cho bot) rồi bấm Kết nối, không cần dán lại mã.",
+                       "The bot token is saved, no chat yet: type the group/chat ID (or message the bot), then press Connect; no need to paste the token again."],
   connect: ["Kết nối", "Connect"],
   telegramTest: ["Gửi tin thử", "Send a test"],
   telegramOff: ["Gỡ Telegram", "Remove Telegram"],
@@ -572,7 +611,8 @@ function renderSettings(s) {
   const now = $("alertsNow");
   now.className = "hint " + (a.active.length ? "alerts-now" : "alerts-ok");
   now.textContent = !a.enabled ? t("alertsOffNow") : a.active.length ? t("alertsNow", a.active.map((x) => x.text).join("; ")) : t("alertsOk");
-  $("telegramStatus").textContent = s.telegram.connected ? t("telegramConnected", s.telegram.bot) : t("telegramNone");
+  $("telegramStatus").textContent = s.telegram.connected ? t("telegramConnected", s.telegram.bot, s.telegram.chat || "?")
+    : s.telegram.token_saved ? t("telegramTokenSaved") : t("telegramNone");
   $("telegramSetup").hidden = s.telegram.connected;
   $("telegramActions").hidden = !s.telegram.connected;
   if (settingsLoaded) return;  // do not overwrite what is being typed
@@ -639,6 +679,16 @@ $("savePw").addEventListener("click", () => {
   action({ action: "password", password: $("pw1").value }).then((ok) => { if (ok) { $("pw1").value = ""; $("pw2").value = ""; } });
 });
 
+// Vietnam Theme
+function refreshVietnam() { $("vnPreview").src = "/vietnam-preview.png?t=" + Date.now(); }
+$("vnUse").addEventListener("click", () => action({ action: "mode", mode: "vietnam" }));
+$("vnSetLogo").addEventListener("click", async () => {
+  if (await upload("themelogo", $("vnLogo")) && await action({ action: "theme_logo" })) setTimeout(refreshVietnam, 500);
+});
+$("vnNoLogo").addEventListener("click", async () => { if (await action({ action: "theme_logo", remove: true })) setTimeout(refreshVietnam, 500); });
+refreshVietnam();
+setInterval(() => { if (document.visibilityState === "visible") refreshVietnam(); }, 30000);
+
 // Clock & weather, night, alerts
 async function findCity() {
   const q = $("citySearch").value.trim();
@@ -670,7 +720,10 @@ $("alertsSave").addEventListener("click", () => action({ action: "alerts", enabl
   services: $("alertServices").value }));
 $("alertsTest").addEventListener("click", () => action({ action: "alerts_test" }));
 $("telegramConnect").addEventListener("click", async () => {
-  if (await action({ action: "telegram_connect", token: $("botToken").value })) $("botToken").value = "";
+  if (await action({ action: "telegram_connect", token: $("botToken").value, chat: $("chatId").value.trim() })) {
+    $("botToken").value = "";
+    $("chatId").value = "";
+  }
 });
 $("telegramTest").addEventListener("click", () => action({ action: "telegram_test" }));
 $("telegramOff").addEventListener("click", () => action({ action: "telegram_off" }));

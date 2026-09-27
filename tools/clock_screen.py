@@ -10,6 +10,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFont
 
 import i18n
 import lunar
+import moon
 import weather
 from i18n import tr
 
@@ -164,29 +165,34 @@ def render(now, place, forecast, age):
         for i, line in enumerate(lines):
             d.text((x0, 112 + i * 18), line, font=fit(d, line, ROBOTO, 13, W - 12 - x0), fill=SUB, anchor="lm")
     d.line([(12, 168), (W - 12, 168)], fill=BORDER, width=1)
-    # Lunar calendar card
+    # Lunar calendar card, with the moonphase window of Swiss watches
     d.rounded_rectangle([12, 178, 232, 308], radius=10, fill=CARD, outline=BORDER)
     lday, lmonth, lyear, leap = lunar.solar_to_lunar(now.day, now.month, now.year)
-    d.text((24, 192), tr("ÂM LỊCH", "LUNAR CALENDAR"), font=font(ROBOTO_BOLD, 11), fill=MUTED, anchor="lm")
-    big_date = f"{lday}/{lmonth}"
-    d.text((24, 230), big_date, font=font(ROBOTO_BOLD, 40), fill=AMBER, anchor="lm")
-    right = 30 + d.textlength(big_date, font=font(ROBOTO_BOLD, 40))
+    label = tr("ÂM LỊCH", "LUNAR CALENDAR")
+    d.text((24, 192), label, font=font(ROBOTO_BOLD, 11), fill=MUTED, anchor="lm")
+    holiday = None if leap else lunar.HOLIDAYS.get((lday, lmonth))
+    special = tr(*holiday) if holiday else {1: tr("Mùng 1", "1st"), 15: tr("Rằm", "15th")}.get(lday)
+    if special:
+        x = 30 + d.textlength(label, font=font(ROBOTO_BOLD, 11))
+        width = d.textlength(special, font=font(ROBOTO_BOLD, 10))
+        d.rounded_rectangle([x, 184, x + width + 12, 200], radius=8, fill=(69, 43, 8))
+        d.text((x + 6, 192), special, font=font(ROBOTO_BOLD, 10), fill=AMBER, anchor="lm")
+    d.text((24, 226), f"{lday}/{lmonth}", font=font(ROBOTO_BOLD, 36), fill=AMBER, anchor="lm")
+    phase = moon.phase(now)
+    dial = moon.dial(70, phase["fraction"], plate=CARD, frame=BORDER, gold=(236, 196, 102))
+    img.paste(dial, (154, 186), dial)
+    d.text((189, 234), tr(f"Sáng {phase['illumination'] * 100:.0f}%", f"{phase['illumination'] * 100:.0f}% lit"),
+           font=font(ROBOTO, 9), fill=MUTED, anchor="mm")
     year = lunar.year_name(lyear)
-    d.text((right, 218), year, font=fit(d, year, ROBOTO_MEDIUM, 16, 226 - right), fill=TEXT, anchor="lm")
-    if leap:
-        tag = tr("tháng nhuận", "leap month")
-    else:
-        tag = tr(f"năm con {lunar.ANIMALS_VI[(lyear + 8) % 12]}", f"year of the {lunar.year_animal(lyear)}")
-    d.text((right, 242), tag, font=fit(d, tag, ROBOTO, 12, 226 - right), fill=SUB, anchor="lm")
+    tag = tr("tháng nhuận", "leap month") if leap else tr(f"năm con {lunar.ANIMALS_VI[(lyear + 8) % 12]}",
+                                                         f"year of the {lunar.year_animal(lyear)}")
+    line = f"{year} · {tag}"
+    d.text((24, 256), line, font=fit(d, line, ROBOTO_MEDIUM, 13, 200), fill=TEXT, anchor="lm")
     names = tr(f"Ngày {lunar.day_name(now.day, now.month, now.year)} · Tháng {lunar.month_name(lmonth, lyear)}",
                f"Day {lunar.day_name(now.day, now.month, now.year)} · Month {lunar.month_name(lmonth, lyear)}")
-    d.text((24, 270), names, font=fit(d, names, ROBOTO, 12, 200), fill=SUB, anchor="lm")
-    holiday = None if leap else lunar.HOLIDAYS.get((lday, lmonth))
-    special = tr(*holiday) if holiday else {1: tr("Mùng 1", "New moon (1st)"), 15: tr("Rằm", "Full moon (15th)")}.get(lday)
-    if special:
-        d.rounded_rectangle([24, 284, 30 + d.textlength(special, font=font(ROBOTO_BOLD, 11)) + 6, 300], radius=8,
-                            fill=(69, 43, 8))
-        d.text((30, 292), special, font=font(ROBOTO_BOLD, 11), fill=AMBER, anchor="lm")
+    d.text((24, 276), names, font=fit(d, names, ROBOTO, 11, 200), fill=SUB, anchor="lm")
+    moons = tr(f"{moon.name(phase)} · tròn {phase['next_full']:%d/%m}", f"{moon.name(phase, False)} · full {phase['next_full']:%d/%m}")
+    d.text((24, 294), moons, font=fit(d, moons, ROBOTO, 10, 200), fill=MUTED, anchor="lm")
     # Forecast card
     d.rounded_rectangle([244, 178, W - 12, 308], radius=10, fill=CARD, outline=BORDER)
     d.text((256, 192), tr("DỰ BÁO", "FORECAST"), font=font(ROBOTO_BOLD, 11), fill=MUTED, anchor="lm")
