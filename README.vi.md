@@ -17,7 +17,12 @@ rồi thêm theme, công cụ quản lý và bộ cài riêng cho iGam3.
   **Bật/tắt từng khối**, bố cục tự dàn lại; đổi **tiêu đề**, **nhãn**, **ảnh nền**; kèm 38 theme 3.5" khác có sẵn.
 - **Thư viện theme**: 39 theme có sẵn, cộng **85 theme của cộng đồng** đã chạy thử với màn này, bấm một nút là tải về
   từ bài đăng của tác giả và dùng luôn.
-- **4 kiểu màn hình chính**, giữ nguyên sau khi khởi động lại: bảng thông số, ảnh cố định (PNG/JPG/GIF), mã QR, dòng lệnh.
+- **5 kiểu màn hình chính**, giữ nguyên sau khi khởi động lại: bảng thông số, đồng hồ, ảnh cố định (PNG/JPG/GIF), mã QR, dòng lệnh.
+- **Màn đồng hồ**: giờ, ngày, lịch âm kèm ngày lễ, và thời tiết của thành phố bạn chọn (Open-Meteo, miễn phí, không cần
+  đăng ký).
+- **Cảnh báo**: CPU quá nóng, ổ gần đầy, mất mạng hoặc dịch vụ bị dừng thì màn chuyển đỏ, tăng sáng, và gửi tin về bot
+  Telegram của bạn.
+- **Hẹn giờ ban đêm**: màn tự giảm sáng hoặc tắt vào ban đêm. Màn **"Đang tắt máy…"** khi tắt máy.
 - **Ảnh giới thiệu**: tạo ảnh có chữ của bạn, kèm logo hoặc ảnh nền.
 - **Giao diện quản lý web**: xem trực tiếp màn nhỏ đang hiện gì, bật/tắt, đổi mọi thứ ở trên. Mở cho điện thoại
   trong mạng LAN (có mật khẩu) khi bạn muốn.
@@ -54,11 +59,11 @@ Kết quả có dòng `QinHeng Electronics UsbMonitor` là đúng.
 1. Vào trang [Releases](https://github.com/nguyenduchoai/igam3-screen/releases), tải file `igam3-screen-installer-<phiên bản>.run`.
 2. Mở Terminal bằng **tài khoản thường** (không gõ `sudo`) và chạy:
    ```bash
-   bash igam3-screen-installer-1.3.0.run
+   bash igam3-screen-installer-1.4.0.run
    ```
    Có thể đặt sẵn tiêu đề và ngôn ngữ:
    ```bash
-   bash igam3-screen-installer-1.3.0.run --title "Tên máy" --tag "DePIN NODE" --lang vi
+   bash igam3-screen-installer-1.4.0.run --title "Tên máy" --tag "DePIN NODE" --lang vi
    ```
 3. Nhập mật khẩu sudo khi được hỏi. Khoảng 10 giây sau, màn nhỏ hiện bảng thông số.
 
@@ -139,6 +144,7 @@ Mật khẩu lưu dạng băm (PBKDF2) trong `web.yaml`. Giao diện chặn các
 | Lệnh | Màn nhỏ hiện |
 |---|---|
 | `igam3-screen mode stats` | bảng thông số |
+| `igam3-screen mode clock` | đồng hồ, lịch âm và thời tiết |
 | `igam3-screen image anh.png --keep` | ảnh cố định (PNG/JPG, GIF động). `--fill` để phủ kín màn |
 | `igam3-screen mode qr` | mã QR mở giao diện quản lý |
 | `igam3-screen mode console` | dòng lệnh tty3 (chỉ Linux) |
@@ -213,6 +219,63 @@ igam3-screen language vi      # hoặc en, hoặc auto (theo máy)
 
 hoặc chọn ở ô ngôn ngữ trên cùng của giao diện web. Bộ cài nhận thêm `--lang vi|en` (`-Lang` trên Windows).
 
+### Đồng hồ, thời tiết và lịch âm
+
+```bash
+igam3-screen weather "Hà Nội"   # thành phố của thời tiết (Open-Meteo: miễn phí, không cần đăng ký)
+igam3-screen mode clock
+```
+
+Màn đồng hồ hiện giờ, ngày, ngày âm lịch kèm can chi của ngày, tháng, năm, các ngày lễ âm lịch (Tết, Rằm, Trung thu,
+Vu Lan…), thời tiết hiện tại và dự báo 3 ngày, cập nhật 15 phút một lần. Mất mạng thì giữ dự báo gần nhất. Trên giao
+diện web có mục **Đồng hồ & thời tiết** để đặt thành phố.
+
+<p align="center"><img src="docs/vi/screens.png" width="900" alt="Màn đồng hồ, cảnh báo và tắt máy"></p>
+
+### Cảnh báo và Telegram
+
+Chương trình kiểm tra máy 15 giây một lần. Có vấn đề thì màn **chuyển đỏ và sáng lên** 15 giây, rồi trở lại màn chính,
+cứ mỗi phút nhắc lại cho đến khi ổn:
+
+| Cảnh báo | Mặc định |
+|---|---|
+| Nhiệt độ CPU | từ 85°C |
+| Ổ đĩa | đầy từ 90% |
+| Mất mạng | quá 45 giây |
+| Dịch vụ bị dừng | chưa theo dõi dịch vụ nào: thêm dịch vụ của bạn, ví dụ `aicoworker.service` (`user:tên.service` cho dịch vụ của tài khoản) |
+
+```bash
+igam3-screen alerts                                   # cài đặt và cảnh báo hiện có
+igam3-screen alerts --temp 85 --disk 90 --network on --services aicoworker.service
+igam3-screen alerts --test                            # cảnh báo thử trên màn (và Telegram)
+igam3-screen alerts off                               # hoặc on
+```
+
+Muốn nhận cảnh báo trên điện thoại thì kết nối một bot Telegram của riêng bạn (không bắt buộc):
+
+1. Trong Telegram, nhắn cho **@BotFather**: `/newbot`, đặt tên, rồi chép mã bot nó gửi.
+2. Nhắn một tin bất kỳ cho bot mới.
+3. Chạy `igam3-screen telegram --token` và dán mã bot (hoặc dùng mục **Cảnh báo** trên giao diện web).
+
+Từ đó bot nhận tin khi có cảnh báo và khi hết cảnh báo. Mã bot lưu trong `telegram.yaml`, chỉ tài khoản của bạn đọc
+được. `igam3-screen telegram --test` gửi tin thử, `--off` gỡ bot.
+
+### Hẹn giờ ban đêm
+
+```bash
+igam3-screen night 22:00-06:00 --dim 10   # ban đêm giảm sáng còn 10%, hoặc --screen-off để tắt hẳn
+igam3-screen night off
+```
+
+Màn này để sáng thì nóng và mau xuống cấp, nên hẹn giờ ban đêm giúp màn bền hơn. Có cảnh báo thì màn vẫn sáng lên để báo.
+
+<p align="center"><img src="docs/vi/settings.png" width="720" alt="Cài đặt đồng hồ, ban đêm và cảnh báo trên giao diện web"></p>
+
+### Khi tắt máy
+
+Khi tắt máy hoặc khởi động lại (Linux), màn nhỏ hiện **Đang tắt máy…** hoặc **Đang khởi động lại…** thay vì tối
+đen. Rút điện khi màn này tối hẳn hoặc đèn nguồn trên máy đã tắt.
+
 ### Mã QR và phím tắt
 
 - **Ctrl+Alt+Q** (hoặc lệnh `igam3-screen qr`): hiện mã QR 1 phút rồi quay lại màn chính.
@@ -239,6 +302,9 @@ khi dịch vụ đã chạy (khoảng 10–15 giây sau khi bật máy). Có hai
 | `igam3-screen panel` | mở giao diện quản lý |
 | `igam3-screen web --password` / `--lan on\|off` | mật khẩu, mở/đóng giao diện cho mạng LAN |
 | `igam3-screen language vi\|en\|auto` | ngôn ngữ |
+| `igam3-screen weather "<thành phố>"` | thành phố của thời tiết trên màn đồng hồ |
+| `igam3-screen alerts` / `telegram --token` | cảnh báo, bot Telegram |
+| `igam3-screen night 22:00-06:00 --dim 10` | hẹn giờ ban đêm |
 | `igam3-screen themes` / `store` | theme trên máy / theme cộng đồng để cài |
 | `igam3-screen test` | hình kiểm tra hướng màn (mũi tên phải chỉ lên) |
 | `igam3-screen off` | tắt màn |
@@ -280,14 +346,17 @@ Trước lần đăng nhập đầu tiên sau khi cài, lệnh `igam3-screen` ch
 | `tools/web_panel.py`, `tools/web/` | giao diện quản lý |
 | `tools/console_mirror.py`, `tools/qr_screen.py`, `tools/make_splash.py` | chế độ Dòng lệnh, màn QR, ảnh giới thiệu |
 | `tools/i18n.py` | tiếng Việt / tiếng Anh |
+| `tools/clock_screen.py`, `tools/weather.py`, `tools/lunar.py` | màn đồng hồ, thời tiết Open-Meteo, lịch âm |
+| `tools/screen_events.py` | cảnh báo, Telegram, hẹn giờ ban đêm, màn tắt máy |
 | `tools/theme_store.py`, `tools/theme_catalog.json` | theme cộng đồng: bộ cài và danh sách (tạo bằng `packaging/theme_catalog.py`) |
 | `tools/platform_support.py` | phần khác nhau giữa Linux (systemd) và Windows |
 | `install.sh`, `setup-root.sh`, `uninstall.sh` | cài / cấp quyền / gỡ trên Ubuntu |
 | `install-windows.cmd`, `install-windows.ps1`, `uninstall-windows.ps1` | cài / gỡ trên Windows |
 | `packaging/` | đóng gói bộ cài |
 
-Mỗi máy tự tạo các file riêng sau (không nằm trong git): `settings.yaml` (màn chính, ngôn ngữ), `web.yaml` (mật khẩu),
-`images/`, `app/config.yaml` (đã sửa), `app/res/themes/iGam3/custom.yaml`.
+Mỗi máy tự tạo các file riêng sau (không nằm trong git): `settings.yaml` (màn chính, ngôn ngữ, thời tiết, cảnh báo,
+ban đêm), `web.yaml` (mật khẩu), `telegram.yaml` (bot), `images/`, `app/config.yaml` (đã sửa),
+`app/res/themes/iGam3/custom.yaml`.
 
 ## Đóng gói và phát hành
 
@@ -299,11 +368,13 @@ bash packaging/build.sh
 
 Lệnh này tạo `dist/igam3-screen-installer-<VERSION>.run` (Linux, kèm thư viện) và `dist/igam3-screen-windows-<VERSION>.zip`.
 Đưa hai file đó lên một bản phát hành trên GitHub (Releases), ví dụ bằng
-[GitHub CLI](https://cli.github.com/): `gh release create v1.3.0 dist/*`.
+[GitHub CLI](https://cli.github.com/): `gh release create v1.4.0 dist/*`.
 
 ## Giấy phép và ghi công
 
 - Phát hành theo **GPL-3.0-or-later** (file [LICENSE](LICENSE)), vì dùng và kèm theo
   [turing-smart-screen-python](https://github.com/mathoudebine/turing-smart-screen-python) © Matthieu Houdebine và cộng sự.
 - Font Roboto / Roboto Mono (Apache-2.0), JetBrains Mono / Generale Mono (SIL OFL-1.1). Xem [NOTICE](NOTICE).
+- Dữ liệu thời tiết của [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0), miễn phí khi dùng phi thương mại. Thuật
+  toán lịch âm của Hồ Ngọc Đức, dựa trên Jean Meeus.
 - Dự án cộng đồng, **không liên kết** với iG3 / Gam3 Labs hay TURZX. Các tên này thuộc về chủ sở hữu tương ứng.

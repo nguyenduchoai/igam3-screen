@@ -19,7 +19,12 @@ management tools and installers made for the iGam3.
   picture**; 38 other 3.5" themes are included.
 - **Theme gallery**: the 39 bundled themes, plus **85 community themes** tested on this screen that install with one
   click from their authors' posts.
-- **4 kinds of main screen**, kept after a restart: dashboard, fixed picture (PNG/JPG/GIF), QR code, text console.
+- **5 kinds of main screen**, kept after a restart: dashboard, clock, fixed picture (PNG/JPG/GIF), QR code, text console.
+- **Clock screen**: time, date, Vietnamese lunar calendar with its holidays, and the weather of your city (Open-Meteo,
+  free, no account).
+- **Alerts**: high CPU temperature, disk almost full, network lost or a service stopped: the screen turns red and bright,
+  and your Telegram bot gets a message.
+- **Night schedule**: the screen dims or turns off at night. A **"Shutting down…"** screen when the computer goes off.
 - **Splash pictures**: make a picture with your own text, logo or photo.
 - **Web control panel**: see live what the small screen shows, turn it on or off and change everything above. Open it
   to phones on your local network (with a password) when you want to.
@@ -57,11 +62,11 @@ A line with `QinHeng Electronics UsbMonitor` means it does.
    [Releases](https://github.com/nguyenduchoai/igam3-screen/releases) page.
 2. Open a terminal as your **normal user** (do not type `sudo`) and run:
    ```bash
-   bash igam3-screen-installer-1.3.0.run
+   bash igam3-screen-installer-1.4.0.run
    ```
    You can set the title and the language right away:
    ```bash
-   bash igam3-screen-installer-1.3.0.run --title "My node" --tag "DePIN NODE" --lang en
+   bash igam3-screen-installer-1.4.0.run --title "My node" --tag "DePIN NODE" --lang en
    ```
 3. Type your sudo password when asked. About 10 seconds later the small screen shows the dashboard.
 
@@ -146,6 +151,7 @@ other web sites.
 | Command | The small screen shows |
 |---|---|
 | `igam3-screen mode stats` | the dashboard |
+| `igam3-screen mode clock` | clock, lunar calendar and weather |
 | `igam3-screen image picture.png --keep` | a fixed picture (PNG/JPG, animated GIF). `--fill` fills the whole screen |
 | `igam3-screen mode qr` | a QR code that opens the web panel |
 | `igam3-screen mode console` | the text console tty3 (Linux only) |
@@ -219,6 +225,63 @@ igam3-screen language en      # or vi, or auto (follow the system)
 
 or use the selector at the top of the web panel. The installers take `--lang en|vi` (`-Lang` on Windows).
 
+### Clock, weather and lunar calendar
+
+```bash
+igam3-screen weather "London"   # city of the weather (Open-Meteo: free, no account)
+igam3-screen mode clock
+```
+
+The clock screen shows the time, the date, the Vietnamese lunar date with the names of the day, month and year, the
+lunar holidays (Tết, Mid-Autumn…), the weather now and a 3-day forecast, refreshed every 15 minutes. Without Internet
+it keeps the last forecast. The web panel has the same settings under **Clock & weather**.
+
+<p align="center"><img src="docs/screens.png" width="900" alt="Clock, alert and shutdown screens"></p>
+
+### Alerts and Telegram
+
+The screen watches the computer every 15 seconds. When something goes wrong it turns **red and bright** for 15 seconds,
+then shows the main screen again, and repeats every minute until the problem is solved:
+
+| Alert | Default |
+|---|---|
+| CPU temperature | from 85°C |
+| Disk usage | from 90% |
+| No Internet | for 45 seconds |
+| A service stopped | none watched: add yours, e.g. `aicoworker.service` (`user:name.service` for a user service) |
+
+```bash
+igam3-screen alerts                                   # settings and current alerts
+igam3-screen alerts --temp 85 --disk 90 --network on --services aicoworker.service
+igam3-screen alerts --test                            # a test alert on the screen (and Telegram)
+igam3-screen alerts off                               # or on
+```
+
+To get the alerts on your phone, connect a Telegram bot of your own (optional):
+
+1. In Telegram, message **@BotFather**: `/newbot`, choose a name, and copy the bot token it gives.
+2. Send any message to your new bot.
+3. Run `igam3-screen telegram --token` and paste the token (or use the **Alerts** section of the web panel).
+
+The bot then gets a message when an alert starts and when it is over. The token is kept in `telegram.yaml`, readable by
+your account only. `igam3-screen telegram --test` sends a test message, `--off` removes the bot.
+
+### Night schedule
+
+```bash
+igam3-screen night 22:00-06:00 --dim 10   # dim to 10% at night, or --screen-off to turn it off
+igam3-screen night off
+```
+
+The screen gets warm and ages faster when bright, so a night schedule helps. Alerts still light it up at night.
+
+<p align="center"><img src="docs/settings.png" width="720" alt="Clock, night and alert settings in the web panel"></p>
+
+### Shutting down
+
+When the computer shuts down or restarts (Linux), the small screen shows **Shutting down…** or **Restarting…** instead
+of going black. Unplug once the screen goes dark or the power light of the computer is off.
+
 ### QR code and shortcuts
 
 - **Ctrl+Alt+Q** (or `igam3-screen qr`): shows the QR code for 1 minute, then the main screen again.
@@ -246,6 +309,9 @@ lights up once the service runs (10–15 seconds after power on). Two ways to us
 | `igam3-screen panel` | open the web panel |
 | `igam3-screen web --password` / `--lan on\|off` | password, open / close the panel to the local network |
 | `igam3-screen language en\|vi\|auto` | language |
+| `igam3-screen weather "<city>"` | city of the weather on the clock screen |
+| `igam3-screen alerts` / `telegram --token` | alerts, Telegram bot |
+| `igam3-screen night 22:00-06:00 --dim 10` | night schedule |
 | `igam3-screen themes` / `store` | themes on this computer / community themes to install |
 | `igam3-screen test` | orientation test pattern (the arrow must point up) |
 | `igam3-screen off` | turn the screen off |
@@ -287,14 +353,17 @@ Until your next login after installing, the `igam3-screen` command is not in the
 | `tools/web_panel.py`, `tools/web/` | the web panel |
 | `tools/console_mirror.py`, `tools/qr_screen.py`, `tools/make_splash.py` | console mode, QR screen, splash pictures |
 | `tools/i18n.py` | English / Vietnamese |
+| `tools/clock_screen.py`, `tools/weather.py`, `tools/lunar.py` | clock screen, Open-Meteo weather, Vietnamese lunar calendar |
+| `tools/screen_events.py` | alerts, Telegram, night schedule, shutdown screen |
 | `tools/theme_store.py`, `tools/theme_catalog.json` | community themes: installer and catalog (built by `packaging/theme_catalog.py`) |
 | `tools/platform_support.py` | what differs between Linux (systemd) and Windows |
 | `install.sh`, `setup-root.sh`, `uninstall.sh` | install / permissions / uninstall on Ubuntu |
 | `install-windows.cmd`, `install-windows.ps1`, `uninstall-windows.ps1` | install / uninstall on Windows |
 | `packaging/` | builds the installers |
 
-Each computer creates these files for itself (not in git): `settings.yaml` (main screen, language), `web.yaml`
-(password), `images/`, `app/config.yaml` (modified), `app/res/themes/iGam3/custom.yaml`.
+Each computer creates these files for itself (not in git): `settings.yaml` (main screen, language, weather, alerts,
+night), `web.yaml` (password), `telegram.yaml` (bot), `images/`, `app/config.yaml` (modified),
+`app/res/themes/iGam3/custom.yaml`.
 
 ## Building a release
 
@@ -306,7 +375,7 @@ bash packaging/build.sh
 
 This makes `dist/igam3-screen-installer-<VERSION>.run` (Linux, libraries included) and
 `dist/igam3-screen-windows-<VERSION>.zip`. Publish both as a GitHub release, for example with the
-[GitHub CLI](https://cli.github.com/): `gh release create v1.3.0 dist/*`.
+[GitHub CLI](https://cli.github.com/): `gh release create v1.4.0 dist/*`.
 
 ## License and credits
 
@@ -314,4 +383,6 @@ This makes `dist/igam3-screen-installer-<VERSION>.run` (Linux, libraries include
   [turing-smart-screen-python](https://github.com/mathoudebine/turing-smart-screen-python) © Matthieu Houdebine and
   contributors.
 - Fonts: Roboto / Roboto Mono (Apache-2.0), JetBrains Mono / Generale Mono (SIL OFL-1.1). See [NOTICE](NOTICE).
+- Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0), free for non-commercial use. Lunar calendar
+  algorithm by Hồ Ngọc Đức, after Jean Meeus.
 - Community project, **not affiliated** with iG3 / Gam3 Labs or TURZX. These names belong to their owners.

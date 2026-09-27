@@ -58,7 +58,7 @@ $Cli = Join-Path $Dir "tools\igam3_screen.py"
 $VenvPython = Join-Path $Dir ".venv\Scripts\python.exe"
 
 # 2. Upgrade: stop what runs from this folder, keep what was set on this machine
-$Keep = @("app\config.yaml", "app\res\themes\iGam3\custom.yaml", "settings.yaml", "web.yaml", "images", "uploads")
+$Keep = @("app\config.yaml", "app\res\themes\iGam3\custom.yaml", "settings.yaml", "web.yaml", "telegram.yaml", "images", "uploads")
 $Backup = Join-Path $env:TEMP ("igam3-screen-keep-" + [guid]::NewGuid())
 if (Test-Path $Cli) {
     Say (T "Đã có bản cài: nâng cấp, giữ nguyên cấu hình, ảnh và mật khẩu" "Already installed: upgrading, keeping the settings, pictures and password")

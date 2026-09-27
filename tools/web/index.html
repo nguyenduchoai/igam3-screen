@@ -11,6 +11,7 @@
     --radius: 14px;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
            padding: 16px; max-width: 1100px; margin: 0 auto; }
@@ -36,7 +37,7 @@
   .hint.warn { color: var(--warn); }
   .hint a { color: var(--accent); }
   code { background: var(--card2); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; font-size: 13px; word-break: break-all; }
-  .seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: var(--card2); padding: 4px; border-radius: 12px; border: 1px solid var(--border); }
+  .seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 6px; background: var(--card2); padding: 4px; border-radius: 12px; border: 1px solid var(--border); }
   .seg button { background: transparent; color: var(--sub); border: 0; border-radius: 9px; padding: 10px 6px; font: inherit; font-weight: 600; cursor: pointer; }
   .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
   @media (max-width: 420px) { .seg button { font-size: 13px; padding: 10px 2px; } }
@@ -91,6 +92,13 @@
   .tactions .btn.ghost { flex: none; text-decoration: none; text-align: center; }
   .badge { font-size: 11px; color: var(--accent); border: 1px solid #155e6e; border-radius: 999px; padding: 0 6px; margin-left: 4px; }
   .more { margin-top: 12px; }
+  .places { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .places .btn { font-weight: 600; }
+  .inline { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  input[type=number], input[type=time] { width: 100%; background: var(--card2); color: var(--text); border: 1px solid var(--border);
+            border-radius: 10px; padding: 10px 12px; font: inherit; color-scheme: dark; }
+  .alerts-now { color: var(--err); font-weight: 600; }
+  .alerts-ok { color: var(--ok); }
   select.compact { width: auto; padding: 5px 10px; font-size: 13px; border-radius: 999px; color: var(--sub); }
 </style>
 </head>
@@ -128,6 +136,7 @@
     <h2 data-t="mainTitle"></h2>
     <div class="seg" role="group" data-t-label="modeGroup">
       <button data-mode="stats" data-t="modeStats"></button>
+      <button data-mode="clock" data-t="modeClock"></button>
       <button data-mode="image" data-t="modeImage"></button>
       <button data-mode="console" data-t="modeConsole"></button>
       <button data-mode="qr" data-t="modeQr"></button>
@@ -187,6 +196,72 @@
     <p class="hint" id="galleryHint"></p>
     <div class="themes" id="themeGrid"></div>
     <div class="actions more"><button class="btn ghost" id="moreThemes" hidden></button></div>
+  </section>
+
+  <section class="card" id="clockCard">
+    <h2 data-t="clockTitle"></h2>
+    <p class="hint" id="cityNow"></p>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <input type="text" id="citySearch" data-t-placeholder="citySearch" data-t-label="citySearch" maxlength="80">
+      <button class="btn ghost" id="cityFind" data-t="search"></button>
+    </div>
+    <div class="places" id="places"></div>
+    <div class="actions"><button class="btn ghost" id="cityOff" data-t="cityOff"></button></div>
+    <p class="hint" data-t="weatherCredit"></p>
+  </section>
+
+  <section class="card" id="nightCard">
+    <h2 data-t="nightTitle"></h2>
+    <div class="row">
+      <span data-t="nightOn"></span>
+      <label class="switch"><input type="checkbox" id="nightOn" data-t-label="nightOn"><span></span></label>
+    </div>
+    <div class="inline">
+      <div><label class="field" for="nightStart" data-t="from"></label><input type="time" id="nightStart"></div>
+      <div><label class="field" for="nightEnd" data-t="to"></label><input type="time" id="nightEnd"></div>
+    </div>
+    <label class="field" for="nightAction" data-t="nightAction"></label>
+    <select id="nightAction"><option value="dim" data-t="nightDim"></option><option value="off" data-t="nightOff"></option></select>
+    <label class="field" for="nightLevel"><span data-t="nightLevel"></span>: <b id="nightLevelValue"></b>%</label>
+    <input type="range" id="nightLevel" min="0" max="100" step="5">
+    <div class="actions"><button class="btn" id="nightSave" data-t="save"></button></div>
+    <p class="hint" data-t="nightHint"></p>
+  </section>
+
+  <section class="card span2" id="alertsCard">
+    <h2 data-t="alertsTitle"></h2>
+    <p class="hint" id="alertsNow"></p>
+    <div class="row">
+      <span data-t="alertsOn"></span>
+      <label class="switch"><input type="checkbox" id="alertsOn" data-t-label="alertsOn"><span></span></label>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
+      <div><label class="field" for="alertTemp" data-t="alertTemp"></label><input type="number" id="alertTemp" min="0" max="110"></div>
+      <div><label class="field" for="alertDisk" data-t="alertDisk"></label><input type="number" id="alertDisk" min="0" max="100"></div>
+      <div><label class="field" for="alertServices" data-t="alertServices"></label><input type="text" id="alertServices" maxlength="200" placeholder="aicoworker.service"></div>
+    </div>
+    <div class="row">
+      <span data-t="alertNet"></span>
+      <label class="switch"><input type="checkbox" id="alertNet" data-t-label="alertNet"><span></span></label>
+    </div>
+    <div class="actions">
+      <button class="btn" id="alertsSave" data-t="save"></button>
+      <button class="btn ghost" id="alertsTest" data-t="alertTest"></button>
+    </div>
+    <p class="hint" data-t="alertsHint"></p>
+    <h3 data-t="telegramTitle"></h3>
+    <p class="hint" id="telegramStatus"></p>
+    <div id="telegramSetup">
+      <p class="hint" data-t-html="telegramSteps"></p>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input type="password" id="botToken" data-t-placeholder="botToken" data-t-label="botToken" autocomplete="off">
+        <button class="btn" id="telegramConnect" data-t="connect"></button>
+      </div>
+    </div>
+    <div class="actions" id="telegramActions">
+      <button class="btn ghost" id="telegramTest" data-t="telegramTest"></button>
+      <button class="btn ghost" id="telegramOff" data-t="telegramOff"></button>
+    </div>
   </section>
 
   <section class="card">
@@ -324,6 +399,50 @@ const TEXT = {
   splashPreview: ["Xem trước bên dưới", "Preview below"],
   pwMismatch: ["Hai lần nhập không khớp", "The two entries differ"],
   galleryTitle: ["Thư viện theme", "Theme gallery"],
+  modeClock: ["Đồng hồ", "Clock"],
+  hint_clock: ["Màn nhỏ hiện giờ, ngày, lịch âm và thời tiết. Đặt thành phố ở mục Đồng hồ & thời tiết.",
+               "The small screen shows the time, date, lunar calendar and weather. Set the city under Clock & weather."],
+  clockTitle: ["Đồng hồ & thời tiết", "Clock & weather"],
+  cityNow: ["Thành phố của thời tiết: {0}", "City of the weather: {0}"],
+  cityNone: ["Chưa đặt thành phố: màn Đồng hồ chưa có thời tiết.", "No city yet: the clock screen has no weather."],
+  citySearch: ["Tìm thành phố, ví dụ Hà Nội", "Search a city, for example London"],
+  search: ["Tìm", "Search"],
+  cityOff: ["Bỏ thời tiết", "No weather"],
+  noPlace: ["Không tìm thấy thành phố này.", "No such city found."],
+  weatherCredit: ["Thời tiết lấy từ Open-Meteo: miễn phí, không cần đăng ký.", "Weather by Open-Meteo: free, no account needed."],
+  nightTitle: ["Ban đêm", "Night"],
+  nightOn: ["Hẹn giờ ban đêm", "Night schedule"],
+  from: ["Từ", "From"],
+  to: ["Đến", "To"],
+  nightAction: ["Khi đến giờ", "At night"],
+  nightDim: ["Giảm sáng", "Dim the screen"],
+  nightOff: ["Tắt màn", "Turn the screen off"],
+  nightLevel: ["Độ sáng ban đêm", "Night brightness"],
+  save: ["Lưu", "Save"],
+  nightHint: ["Màn đỡ nóng và bền hơn. Có cảnh báo thì màn vẫn sáng lên để báo.",
+              "The screen stays cooler and lasts longer. Alerts still light it up."],
+  alertsTitle: ["Cảnh báo", "Alerts"],
+  alertsOn: ["Bật cảnh báo", "Alerts on"],
+  alertTemp: ["Ngưỡng nhiệt độ CPU (°C, 0 = bỏ)", "CPU temperature limit (°C, 0 = off)"],
+  alertDisk: ["Ngưỡng ổ đĩa đầy (%, 0 = bỏ)", "Disk usage limit (%, 0 = off)"],
+  alertServices: ["Dịch vụ cần theo dõi (cách nhau dấu phẩy)", "Services to watch (comma separated)"],
+  alertNet: ["Báo khi mất mạng", "Alert when the network is lost"],
+  alertTest: ["Thử cảnh báo", "Test alert"],
+  alertsHint: ["Có vấn đề thì màn chuyển đỏ và sáng lên 15 giây, nhắc lại mỗi phút đến khi ổn.",
+               "On a problem the screen turns red and bright for 15 seconds, every minute until it is solved."],
+  alertsNow: ["Đang có: {0}", "Now: {0}"],
+  alertsOk: ["Mọi thứ đang ổn.", "All good."],
+  alertsOffNow: ["Cảnh báo đang tắt.", "Alerts are off."],
+  telegramTitle: ["Gửi cảnh báo qua Telegram", "Alerts on Telegram"],
+  telegramConnected: ["Đã kết nối bot @{0}: cảnh báo và tin \"hết cảnh báo\" được gửi vào Telegram của bạn.",
+                      "Connected to the bot @{0}: alerts and \"alert over\" messages go to your Telegram."],
+  telegramNone: ["Chưa kết nối (không bắt buộc).", "Not connected (optional)."],
+  telegramSteps: ["1. Trong Telegram, nhắn cho <b>@BotFather</b>: <code>/newbot</code>, đặt tên, nhận mã bot.<br>2. Nhắn một tin bất kỳ cho bot mới của bạn.<br>3. Dán mã bot vào đây rồi bấm Kết nối.",
+                  "1. In Telegram, message <b>@BotFather</b>: <code>/newbot</code>, choose a name, get the bot token.<br>2. Send any message to your new bot.<br>3. Paste the token here and press Connect."],
+  botToken: ["Mã bot, dạng 123456789:AAE…", "Bot token, like 123456789:AAE…"],
+  connect: ["Kết nối", "Connect"],
+  telegramTest: ["Gửi tin thử", "Send a test"],
+  telegramOff: ["Gỡ Telegram", "Remove Telegram"],
   viewInstalled: ["Trên máy ({0})", "On this computer ({0})"],
   viewStore: ["Kho cộng đồng ({0})", "Community ({0})"],
   searchThemes: ["Tìm theme hoặc tác giả…", "Search a theme or an author…"],
@@ -405,7 +524,6 @@ function render(s) {
   state = s;
   const windows = s.platform === "windows";  // no text console mode on Windows
   document.querySelector('.seg button[data-mode="console"]').style.display = windows ? "none" : "";
-  document.querySelector(".seg").style.gridTemplateColumns = `repeat(${windows ? 3 : 4}, 1fr)`;
   if (windows) $("shortcutHint").innerHTML = t("keysWindows");
   if (document.activeElement !== $("language")) $("language").value = s.language_setting;
   const running = s.service.state === "active";
@@ -443,6 +561,33 @@ function render(s) {
   if (!textsLoaded) { $("title").value = s.title; $("tag").value = s.tag; textsLoaded = true; }
   $("bgHint").textContent = t(s.background ? "bgOwn" : "bgDefault");
   $("lanHint").innerHTML = s.web.lan ? t("lanOn", esc(`http://${s.ip}:${s.web.port}`)) : t("lanOff");
+  renderSettings(s);
+}
+
+let settingsLoaded = false;
+function renderSettings(s) {
+  if (!s.weather || !s.alerts || !s.night || !s.telegram) return;  // older server
+  $("cityNow").textContent = s.weather.name ? t("cityNow", s.weather.name) : t("cityNone");
+  const a = s.alerts, n = s.night;
+  const now = $("alertsNow");
+  now.className = "hint " + (a.active.length ? "alerts-now" : "alerts-ok");
+  now.textContent = !a.enabled ? t("alertsOffNow") : a.active.length ? t("alertsNow", a.active.map((x) => x.text).join("; ")) : t("alertsOk");
+  $("telegramStatus").textContent = s.telegram.connected ? t("telegramConnected", s.telegram.bot) : t("telegramNone");
+  $("telegramSetup").hidden = s.telegram.connected;
+  $("telegramActions").hidden = !s.telegram.connected;
+  if (settingsLoaded) return;  // do not overwrite what is being typed
+  settingsLoaded = true;
+  $("alertsOn").checked = a.enabled;
+  $("alertTemp").value = a.temperature;
+  $("alertDisk").value = a.disk;
+  $("alertNet").checked = a.network;
+  $("alertServices").value = (a.services || []).join(", ");
+  $("nightOn").checked = n.enabled;
+  $("nightStart").value = n.start;
+  $("nightEnd").value = n.end;
+  $("nightAction").value = n.action;
+  $("nightLevel").value = n.brightness;
+  $("nightLevelValue").textContent = n.brightness;
 }
 
 async function refresh() {
@@ -493,6 +638,42 @@ $("savePw").addEventListener("click", () => {
   if ($("pw1").value !== $("pw2").value) { toast(t("pwMismatch"), false); return; }
   action({ action: "password", password: $("pw1").value }).then((ok) => { if (ok) { $("pw1").value = ""; $("pw2").value = ""; } });
 });
+
+// Clock & weather, night, alerts
+async function findCity() {
+  const q = $("citySearch").value.trim();
+  if (!q) return;
+  const box = $("places");
+  box.innerHTML = "";
+  const r = await fetch("/api/places?q=" + encodeURIComponent(q), { cache: "no-store" });
+  const res = await r.json();
+  if (!res.ok) { toast(res.message, false); return; }
+  if (!res.places.length) { toast(t("noPlace"), false); return; }
+  res.places.forEach((place) => {
+    const b = document.createElement("button");
+    b.className = "btn ghost";
+    b.textContent = [place.name, place.region, place.country].filter((x, i, all) => x && all.indexOf(x) === i).join(", ");
+    b.addEventListener("click", async () => {
+      if (await action({ action: "weather", name: place.name, latitude: place.latitude, longitude: place.longitude })) box.innerHTML = "";
+    });
+    box.appendChild(b);
+  });
+}
+$("cityFind").addEventListener("click", findCity);
+$("citySearch").addEventListener("keydown", (e) => { if (e.key === "Enter") findCity(); });
+$("cityOff").addEventListener("click", () => action({ action: "weather", off: true }));
+$("nightLevel").addEventListener("input", (e) => ($("nightLevelValue").textContent = e.target.value));
+$("nightSave").addEventListener("click", () => action({ action: "night", enabled: $("nightOn").checked, start: $("nightStart").value,
+  end: $("nightEnd").value, night_action: $("nightAction").value, brightness: Number($("nightLevel").value) }));
+$("alertsSave").addEventListener("click", () => action({ action: "alerts", enabled: $("alertsOn").checked,
+  temperature: Number($("alertTemp").value), disk: Number($("alertDisk").value), network: $("alertNet").checked,
+  services: $("alertServices").value }));
+$("alertsTest").addEventListener("click", () => action({ action: "alerts_test" }));
+$("telegramConnect").addEventListener("click", async () => {
+  if (await action({ action: "telegram_connect", token: $("botToken").value })) $("botToken").value = "";
+});
+$("telegramTest").addEventListener("click", () => action({ action: "telegram_test" }));
+$("telegramOff").addEventListener("click", () => action({ action: "telegram_off" }));
 
 // Theme gallery
 let themes = null, galleryView = location.hash === "#store" ? "store" : "installed", galleryLimit = 24;

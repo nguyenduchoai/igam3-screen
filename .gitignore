@@ -6,6 +6,7 @@ dist/
 wheels/
 settings.yaml
 web.yaml
+telegram.yaml
 images/
 uploads/
 app/log.log

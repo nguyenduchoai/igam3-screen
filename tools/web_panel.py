@@ -124,6 +124,38 @@ def do_action(data):
                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                          **background_kwargs())
         return True, tr("Màn nhỏ đang hiện mã QR trong 1 phút", "The small screen shows the QR code for 1 minute")
+    if action == "weather":
+        if data.get("off"):
+            return run_cli("weather", "--off")
+        try:
+            lat, lon = float(data.get("latitude")), float(data.get("longitude"))
+        except (TypeError, ValueError):
+            return False, tr("Chưa chọn thành phố", "No city chosen")
+        return run_cli("weather", "--lat", str(lat), "--lon", str(lon), "--", text("name")[:80])
+    if action == "alerts":
+        args = ["alerts", "on" if data.get("enabled") else "off", "--temp", str(int(data.get("temperature") or 0)),
+                "--disk", str(int(data.get("disk") or 0)), "--network", "on" if data.get("network") else "off",
+                "--services", ",".join(x.strip() for x in text("services").split(",") if x.strip())]
+        return run_cli(*args)
+    if action == "alerts_test":
+        return run_cli("alerts", "--test")
+    if action == "telegram_connect":
+        try:
+            bot = core.connect_telegram(text("token"))
+        except (ValueError, OSError) as e:
+            return False, str(e)
+        return True, tr(f"Đã kết nối bot @{bot}: vừa gửi một tin thử vào Telegram.", f"Bot @{bot} connected: a test message was sent.")
+    if action == "telegram_test":
+        return run_cli("telegram", "--test")
+    if action == "telegram_off":
+        return run_cli("telegram", "--off")
+    if action == "night":
+        if not data.get("enabled"):
+            return run_cli("night", "off")
+        window = f"{text('start')}-{text('end')}"
+        if data.get("night_action") == "off":
+            return run_cli("night", window, "--screen-off")
+        return run_cli("night", window, "--dim", str(int(data.get("brightness") or 0)))
     if action == "store_install" and text("id"):
         return run_cli("store", "install", text("id"), "--use")
     if action == "store_remove" and text("id"):
@@ -264,6 +296,13 @@ class Handler(BaseHTTPRequestHandler):
             self.send_file(SPLASH_PREVIEW, "image/png")
         elif path == "/api/themes":
             self.send_json(themes_payload())
+        elif path == "/api/places":
+            import weather
+            query = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(self.path).query)).get("q", "").strip()[:80]
+            try:
+                self.send_json({"ok": True, "places": weather.geocode(query, i18n.LANG) if query else []})
+            except (OSError, ValueError) as e:
+                self.send_json({"ok": False, "message": tr(f"Không tìm được (mạng?): {e}", f"Cannot search (network?): {e}")})
         elif path == "/theme-preview":
             name = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(self.path).query)).get("name", "")
             picture = theme_thumbnail(name)

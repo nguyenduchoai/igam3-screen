@@ -75,7 +75,7 @@ DEST=$(realpath -m "$DEST")
 say "igam3-screen $(cat "$SRC/VERSION") → $DEST"
 
 # Upgrade: keep what the user set on this machine
-KEEP=(app/config.yaml app/res/themes/iGam3/custom.yaml settings.yaml web.yaml images uploads)
+KEEP=(app/config.yaml app/res/themes/iGam3/custom.yaml settings.yaml web.yaml telegram.yaml images uploads)
 BACKUP=$(mktemp -d)
 trap 'rm -rf "$BACKUP"' EXIT
 if [[ -f "$DEST/tools/igam3_screen.py" ]]; then

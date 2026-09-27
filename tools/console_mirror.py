@@ -94,6 +94,12 @@ class ConsoleRenderer:
         self.shown_status = None
         self.shown_message = None
 
+    def forget(self):
+        """The screen was drawn over: nothing of the console is on it any more"""
+        self.shown_rows = [None] * ROWS
+        self.shown_status = None
+        self.shown_message = None
+
     def row_image(self, cells):
         img = Image.new("RGB", (SCREEN_W, CELL_H), PALETTE[0])
         d = ImageDraw.Draw(img)
@@ -185,9 +191,11 @@ def how_to(beside_qr):
             tr("để đăng nhập và gõ lệnh trên màn này", "to log in and type commands on this screen")]
 
 
-def run_console(lcd, stop, primary_ipv4, web_qr=None):
+def run_console(lcd, stop, primary_ipv4, web_qr=None, control=None):
     """web_qr() -> (card, mask, url) of the web panel QR code, or None when the panel is not open to the network"""
     renderer = ConsoleRenderer(lcd)
+    if control:  # after an alert screen: draw everything again
+        control.redraw = renderer.forget
     ip, qr, checked = "", None, 0.0
     while not stop.is_set():
         if time.monotonic() - checked > 5:

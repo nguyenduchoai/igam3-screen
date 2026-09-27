@@ -19,6 +19,7 @@ import time
 from pathlib import Path
 
 import i18n
+import screen_events
 from i18n import tr
 from platform_support import (WINDOWS, SystemdUserService, WindowsBackgroundTask, background_kwargs,
                               create_shortcut, matching_processes, runtime_dir, start_menu_dir, stop_processes,
@@ -37,6 +38,7 @@ IGAM3_THEME = THEMES / "iGam3"
 THEME_CUSTOM = IGAM3_THEME / "custom.yaml"
 SETTINGS = ROOT / "settings.yaml"
 WEB_CONFIG = ROOT / "web.yaml"
+TELEGRAM = ROOT / "telegram.yaml"  # bot token and chat: readable by the user only
 IMAGES = ROOT / "images"
 RUNTIME = runtime_dir()
 PREVIEW = RUNTIME / "screen.png"
@@ -47,7 +49,7 @@ UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
 BIN_LINK = Path.home() / ".local" / "bin" / "igam3-screen"
 DESKTOP_FILE = Path.home() / ".local" / "share" / "applications" / "igam3-screen.desktop"
 USB_VID, USB_PID = 0x1A86, 0x5722
-MODES = {"stats": ("bảng thông số", "dashboard"), "image": ("ảnh cố định", "picture"),
+MODES = {"stats": ("bảng thông số", "dashboard"), "clock": ("đồng hồ", "clock"), "image": ("ảnh cố định", "picture"),
          "console": ("dòng lệnh", "console"), "qr": ("mã QR", "QR code")}
 SHORTCUT_SCHEMA = "org.gnome.settings-daemon.plugins.media-keys"
 SHORTCUT_PATH = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/igam3-qr/"
@@ -160,6 +162,22 @@ def themes_35():
 # What the service shows (stats dashboard, fixed picture, text console or QR code) and the language
 def load_settings():
     return load_yaml_dict(SETTINGS, {"mode": "stats", "image": "", "fill": False, "language": "auto"})
+
+
+class SettingsCache:
+    """settings.yaml, read again only when the file changed (the running screen checks it every second)"""
+
+    def __init__(self):
+        self.mtime, self.data = None, load_settings()
+
+    def __call__(self):
+        try:
+            mtime = SETTINGS.stat().st_mtime
+        except OSError:
+            mtime = None
+        if mtime != self.mtime:
+            self.mtime, self.data = mtime, load_settings()
+        return self.data
 
 
 def save_settings(settings):
@@ -324,17 +342,26 @@ class ScreenMirror:
             self.flush()
 
 
-def install_mirror():
-    # Every drawing goes through DisplayPILImage: stats, pictures and console all update the live view
+def install_mirror(control=None):
+    # Every drawing goes through DisplayPILImage: stats, pictures and console all update the live view. One drawing at
+    # a time (a picture is a command followed by its data), and none of the main screen while an alert covers it
     from library.lcd.lcd_comm_rev_a import LcdCommRevA
     mirror = ScreenMirror(PREVIEW)
     original = LcdCommRevA.DisplayPILImage
 
+    def draw(lcd, image, x=0, y=0, image_width=0, image_height=0):
+        with screen_events.SERIAL:
+            mirror.paste(image, x, y, (lcd.get_width(), lcd.get_height()))
+            return original(lcd, image, x, y, image_width, image_height)
+
     def display_and_mirror(self, image, x=0, y=0, image_width=0, image_height=0):
-        mirror.paste(image, x, y, (self.get_width(), self.get_height()))
-        return original(self, image, x, y, image_width, image_height)
+        if control and control.blocks_main():
+            return None
+        return draw(self, image, x, y, image_width, image_height)
 
     LcdCommRevA.DisplayPILImage = display_and_mirror
+    if control:
+        control.draw_direct = draw
     return mirror
 
 
@@ -475,6 +502,7 @@ def status_dict():
     settings = load_settings()
     custom = load_theme_custom()
     blocks = theme_generator().block_labels(i18n.LANG)
+    telegram = screen_events.Telegram(TELEGRAM).config()
     return {
         "platform": "windows" if WINDOWS else "linux",
         "language": i18n.LANG,
@@ -498,6 +526,10 @@ def status_dict():
         "ip": primary_ipv4(),
         "hostname": socket.gethostname(),
         "web": {"port": WEB_PORT, "password_set": WEB_CONFIG.is_file(), "lan": WEB.state() == "active"},
+        "weather": settings.get("weather") or {},
+        "alerts": {**screen_events.merged(settings, "alerts"), "active": active_alerts()},
+        "night": screen_events.merged(settings, "night"),
+        "telegram": {"connected": bool(telegram), "bot": (telegram or {}).get("bot", "")},
     }
 
 
@@ -554,6 +586,180 @@ def _active_vt():
 
 # ---------------------------------------------------------------- commands
 
+def cmd_weather(args):
+    """Place of the weather on the clock screen (Open-Meteo: free, no account)"""
+    import weather
+    settings = load_settings()
+    if args.off:
+        settings["weather"] = {}
+        save_settings(settings)
+        print(tr("Thời tiết: tắt", "Weather: off"))
+        return
+    if args.lat is not None and args.lon is not None:
+        place = {"name": args.city or f"{args.lat}, {args.lon}", "latitude": args.lat, "longitude": args.lon}
+    elif args.city:
+        try:
+            found = weather.geocode(args.city, i18n.LANG)
+        except OSError as e:
+            die(tr(f"không tìm được thành phố (mạng?): {e}", f"cannot look the city up (network?): {e}"))
+        if not found:
+            die(tr(f"không tìm thấy \"{args.city}\"", f"\"{args.city}\" not found"))
+        place = found[0]
+        if len(found) > 1:
+            print(tr("Cùng tên: ", "Same name: ") + "; ".join(f"{f['name']} ({f['region']}, {f['country']})" for f in found[1:4]))
+    else:
+        place = settings.get("weather") or {}
+        print(tr("Thời tiết: ", "Weather: ") + (place.get("name") or tr("chưa đặt thành phố", "no city set")))
+        print(tr('Đổi: igam3-screen weather "Hà Nội"', 'Change: igam3-screen weather "London"'))
+        return
+    settings["weather"] = {"name": place["name"], "latitude": place["latitude"], "longitude": place["longitude"]}
+    save_settings(settings)
+    where = ", ".join(v for v in (place.get("region"), place.get("country")) if v and v != place["name"])
+    print(tr("Thời tiết: ", "Weather: ") + place["name"] + (f" ({where})" if where else ""))
+    if settings["mode"] != "clock":
+        print(tr("Xem trên màn nhỏ: igam3-screen mode clock", "On the small screen: igam3-screen mode clock"))
+
+
+def alerts_summary(cfg):
+    if not cfg["enabled"]:
+        return tr("tắt", "off")
+    parts = []
+    if cfg["temperature"]:
+        parts.append(tr(f"nhiệt độ ≥ {cfg['temperature']}°C", f"temperature ≥ {cfg['temperature']}°C"))
+    if cfg["disk"]:
+        parts.append(tr(f"ổ đĩa ≥ {cfg['disk']}%", f"disk ≥ {cfg['disk']}%"))
+    if cfg["network"]:
+        parts.append(tr("mất mạng", "no network"))
+    if cfg["services"]:
+        parts.append(tr("dịch vụ ", "services ") + ", ".join(cfg["services"]))
+    return ", ".join(parts) or tr("không theo dõi gì", "nothing watched")
+
+
+def active_alerts():
+    try:
+        return json.loads((RUNTIME / "alerts.json").read_text(encoding="utf8")).get("active", [])
+    except (OSError, ValueError):
+        return []
+
+
+def cmd_alerts(args):
+    """Red screen (and Telegram message) when something goes wrong"""
+    settings = load_settings()
+    cfg = screen_events.merged(settings, "alerts")
+    changed = False
+    if args.state:
+        cfg["enabled"], changed = args.state == "on", True
+    for key, value in (("temperature", args.temp), ("disk", args.disk)):
+        if value is not None:
+            if not 0 <= value <= (110 if key == "temperature" else 100):
+                die(tr("giá trị không hợp lệ (0 = không theo dõi)", "invalid value (0 = not watched)"))
+            cfg[key], changed = value, True
+    if args.network:
+        cfg["network"], changed = args.network == "on", True
+    if args.services is not None:
+        cfg["services"], changed = [x.strip() for x in args.services.split(",") if x.strip()], True
+    if changed:
+        settings["alerts"] = cfg
+        save_settings(settings)
+    if args.test:
+        if not screen_running():
+            die(tr("màn hình đang tắt: bật trước bằng igam3-screen start", "the screen is off: start it with igam3-screen start"))
+        RUNTIME.mkdir(mode=0o700, parents=True, exist_ok=True)
+        (RUNTIME / "alert-test").touch()
+        print(tr("Màn nhỏ sẽ hiện cảnh báo thử trong vài giây (và gửi Telegram nếu đã kết nối).",
+                 "The small screen shows a test alert in a few seconds (and Telegram gets it if connected)."))
+    print(tr("Cảnh báo: ", "Alerts: ") + alerts_summary(cfg))
+    active = active_alerts()
+    print(tr("Hiện tại: ", "Now: ") + ("; ".join(a["text"] for a in active) if active else tr("mọi thứ ổn", "all good")))
+    telegram = screen_events.Telegram(TELEGRAM).config()
+    print("Telegram: " + (f"@{telegram.get('bot', '?')}" if telegram else tr("chưa kết nối (igam3-screen telegram --token)",
+                                                                            "not connected (igam3-screen telegram --token)")))
+
+
+def save_telegram(data):
+    TELEGRAM.touch(mode=0o600)
+    save_yaml_dict(TELEGRAM, data, "# Telegram bot for the alerts (secret). Change: igam3-screen telegram --token\n")
+    os.chmod(TELEGRAM, 0o600)
+
+
+def connect_telegram(token):
+    """Link a bot: (bot name, message) or ValueError"""
+    bot, chat = screen_events.telegram_link(token)
+    save_telegram({"token": token.strip(), "chat_id": chat, "bot": bot})
+    screen_events.Telegram.call(token.strip(), "sendMessage", chat_id=chat, text=tr(
+        f"✅ igam3-screen trên {socket.gethostname()} đã kết nối. Cảnh báo sẽ được gửi vào đây.",
+        f"✅ igam3-screen on {socket.gethostname()} is connected. Alerts will be sent here."))
+    return bot
+
+
+def cmd_telegram(args):
+    telegram = screen_events.Telegram(TELEGRAM)
+    if args.off:
+        TELEGRAM.unlink(missing_ok=True)
+        print(tr("Đã gỡ Telegram.", "Telegram removed."))
+        return
+    if args.token:
+        print(tr("1. Trong Telegram, nhắn cho @BotFather: /newbot, đặt tên, nhận mã bot.",
+                 "1. In Telegram, message @BotFather: /newbot, choose a name, get the bot token."))
+        print(tr("2. Nhắn một tin bất kỳ cho bot mới của bạn.", "2. Send any message to your new bot."))
+        token = getpass.getpass(tr("3. Dán mã bot vào đây (không hiện ra): ", "3. Paste the bot token here (hidden): "))
+        try:
+            bot = connect_telegram(token)
+        except ValueError as e:
+            die(str(e))
+        print(tr(f"Đã kết nối bot @{bot}: vừa gửi một tin thử.", f"Bot @{bot} connected: a test message was sent."))
+        return
+    config = telegram.config()
+    if args.test:
+        if not config:
+            die(tr("chưa kết nối: igam3-screen telegram --token", "not connected: igam3-screen telegram --token"))
+        try:
+            telegram.call(config["token"], "sendMessage", chat_id=config["chat_id"],
+                          text=tr(f"🔔 Tin thử từ igam3-screen ({socket.gethostname()})", f"🔔 Test from igam3-screen ({socket.gethostname()})"))
+        except (OSError, ValueError) as e:
+            die(tr(f"không gửi được: {e}", f"cannot send: {e}"))
+        print(tr("Đã gửi tin thử.", "Test message sent."))
+        return
+    print("Telegram: " + (f"@{config.get('bot', '?')}" if config else tr("chưa kết nối", "not connected")))
+    print(tr("Kết nối: igam3-screen telegram --token   Thử: --test   Gỡ: --off",
+             "Connect: igam3-screen telegram --token   Test: --test   Remove: --off"))
+
+
+def night_summary(cfg):
+    if not cfg["enabled"]:
+        return tr("tắt", "off")
+    action = tr("tắt màn", "screen off") if cfg["action"] == "off" else tr(f"giảm sáng còn {cfg['brightness']}%",
+                                                                           f"dimmed to {cfg['brightness']}%")
+    return f"{cfg['start']}–{cfg['end']}, {action}"
+
+
+def cmd_night(args):
+    """Dim or turn off the screen during the night"""
+    import re
+    settings = load_settings()
+    cfg = screen_events.merged(settings, "night")
+    if args.window == "off":
+        cfg["enabled"] = False
+    elif args.window:
+        match = re.fullmatch(r"(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})", args.window)
+        if not match or int(match[1]) > 23 or int(match[3]) > 23 or int(match[2]) > 59 or int(match[4]) > 59:
+            die(tr("giờ phải có dạng 22:00-06:00", "the hours look like 22:00-06:00"))
+        cfg.update(enabled=True, start=f"{int(match[1]):02d}:{match[2]}", end=f"{int(match[3]):02d}:{match[4]}")
+    if args.dim is not None:
+        if not 0 <= args.dim <= 100:
+            die(tr("độ sáng từ 0 đến 100", "brightness from 0 to 100"))
+        cfg.update(action="dim", brightness=args.dim)
+    if args.screen_off:
+        cfg["action"] = "off"
+    if args.window or args.dim is not None or args.screen_off:
+        settings["night"] = cfg
+        save_settings(settings)
+    print(tr("Ban đêm: ", "Night: ") + night_summary(cfg))
+    if not cfg["enabled"]:
+        print(tr("Bật: igam3-screen night 22:00-06:00 --dim 10   (hoặc --screen-off)",
+                 "Turn on: igam3-screen night 22:00-06:00 --dim 10   (or --screen-off)"))
+
+
 def cmd_status(args):
     st = status_dict()
     if args.json:
@@ -583,6 +789,13 @@ def cmd_status(args):
     lines.append((tr("Độ sáng", "Brightness"), f"{st['brightness']}%   {tr('Xoay 180°', 'Rotated 180°')}: "
                   f"{yes_no(st['reverse'])}"))
     lines.append((tr("Ngôn ngữ", "Language"), language))
+    lines.append((tr("Thời tiết", "Weather"), st["weather"].get("name") or tr("chưa đặt (igam3-screen weather ...)",
+                                                                             "not set (igam3-screen weather ...)")))
+    alerts = alerts_summary(st["alerts"])
+    if st["alerts"]["active"]:
+        alerts += " — " + tr("ĐANG CÓ: ", "NOW: ") + "; ".join(a["text"] for a in st["alerts"]["active"])
+    lines.append((tr("Cảnh báo", "Alerts"), alerts + (f" · Telegram @{st['telegram']['bot']}" if st["telegram"]["connected"] else "")))
+    lines.append((tr("Ban đêm", "Night"), night_summary(st["night"])))
     if st["web"]["lan"]:
         web = tr(f"http://{st['ip']}:{WEB_PORT} (mở cho mạng LAN, có mật khẩu)",
                  f"http://{st['ip']}:{WEB_PORT} (open to the local network, with a password)")
@@ -1133,53 +1346,89 @@ def follow_active_network(config_data):
                  f"The theme shows one network card ({cards[0]}): using the active one, {active}"), flush=True)
 
 
+def start_monitor(control, settings):
+    """Alerts, night schedule: a thread next to whatever main screen runs"""
+    host = f"{load_theme_custom()['title'] or 'iGam3'} · {socket.gethostname()}"
+    screen_events.Monitor(control, settings, screen_events.Telegram(TELEGRAM), RUNTIME, host).start()
+
+
 def cmd_run(_):
     """Entry point of the background screen program: shows the main screen chosen in settings.yaml"""
     os.chdir(APP)
     # Language of the dashboard values (sensors_custom) and dates (babel)
     os.environ["IGAM3_LANG"] = i18n.LANG
     set_date_language()
-    install_mirror()
-    settings = load_settings()
+    _, cfg = load_config()
+    control = screen_events.ScreenControl(int(cfg["display"].get("BRIGHTNESS", 30)))
+    install_mirror(control)
+    settings_cache = SettingsCache()
+    settings = settings_cache()
+    start_monitor(control, settings_cache)
     if settings["mode"] == "image":
         path = Path(str(settings["image"]))
         if path.is_file():
             stop = service_stop_event()
             lcd = open_lcd()
             frames = load_frames(path, (lcd.get_width(), lcd.get_height()), bool(settings["fill"]))
+            control.attach(lcd, redraw=lambda: lcd.DisplayPILImage(frames[0][0]))
             print(tr(f"Màn chính: ảnh {path}", f"Main screen: picture {path}"), flush=True)
             # A still picture stays on the screen by itself: re-send it every 10 min in case the screen was reset
             play(lcd, frames, stop, refresh_s=600)
-            lcd.ScreenOff()
+            screen_events.finish(lcd, control)
             return
         print(tr(f"Không thấy ảnh {path}: hiện bảng thông số", f"Picture {path} not found: showing the dashboard"),
               file=sys.stderr, flush=True)
+    elif settings["mode"] == "clock":
+        from clock_screen import run_clock
+        stop = service_stop_event()
+        lcd = open_lcd("landscape")
+        control.attach(lcd)
+        print(tr("Màn chính: đồng hồ", "Main screen: clock"), flush=True)
+        run_clock(lcd, stop, lambda: settings_cache().get("weather") or None, RUNTIME / "weather.json", control)
+        screen_events.finish(lcd, control)
+        return
     elif settings["mode"] == "console" and not WINDOWS:
         from console_mirror import run_console
         stop = service_stop_event()
         lcd = open_lcd("landscape")
+        control.attach(lcd)
         print(tr("Màn chính: dòng lệnh tty3", "Main screen: console tty3"), flush=True)
-        run_console(lcd, stop, primary_ipv4, web_qr_card)
-        lcd.ScreenOff()
+        run_console(lcd, stop, primary_ipv4, web_qr_card, control)
+        screen_events.finish(lcd, control)
         return
     elif settings["mode"] == "qr":
         stop = service_stop_event()
         lcd = open_lcd("landscape")
+        shown = {"state": None, "at": 0.0}
+        control.attach(lcd, redraw=lambda: shown.update(state=None))
         print(tr("Màn chính: mã QR", "Main screen: QR code"), flush=True)
-        shown, drawn_at = None, 0.0
         while not stop.is_set():
             # Follow IP / web panel changes; re-send every 10 min in case the screen was reset
             state = qr_screen_state()
-            if state != shown or time.monotonic() - drawn_at > 600:
+            if state != shown["state"] or time.monotonic() - shown["at"] > 600:
                 lcd.DisplayPILImage(qr_screen_image(state))
-                shown, drawn_at = state, time.monotonic()
-            stop.wait(10)
-        lcd.ScreenOff()
+                shown.update(state=state, at=time.monotonic())
+            for _ in range(10):  # check again in 10 s, or as soon as an alert screen went away
+                if stop.wait(1) or shown["state"] is None:
+                    break
+        screen_events.finish(lcd, control)
         return
     if WINDOWS:
         watch_stop_file("screen", stop_stats_now)
     from library import config as upstream_config  # the module main.py uses: adjust it before library.stats reads it
     follow_active_network(upstream_config.CONFIG_DATA)
+    import library.display as upstream_display  # the display main.py will draw on
+    display = upstream_display.display
+    control.attach(lambda: display.lcd, redraw=lambda: (display.display_static_images(), display.display_static_text()))
+    original_turn_off = upstream_display.Display.turn_off
+
+    def turn_off(self):  # main.py turns the screen off when it stops: during a shutdown, say it instead
+        if screen_events.shutdown_kind():
+            screen_events.finish(self.lcd, control)
+        else:
+            original_turn_off(self)
+
+    upstream_display.Display.turn_off = turn_off
     sys.argv = [str(APP / "main.py")]
     runpy.run_path(str(APP / "main.py"), run_name="__main__")
 
@@ -1228,6 +1477,32 @@ def main():
     p.add_argument("state", choices=["on", "off"])
     add("stats", lambda a: cmd_mode(argparse.Namespace(mode="stats")), "màn hình chính = bảng thông số",
         "main screen = dashboard")
+    add("clock", lambda a: cmd_mode(argparse.Namespace(mode="clock")), "màn hình chính = đồng hồ, thời tiết, lịch âm",
+        "main screen = clock, weather, lunar calendar")
+    p = add("weather", cmd_weather, "thành phố cho thời tiết trên màn đồng hồ (Open-Meteo, miễn phí)",
+            "city of the weather on the clock screen (Open-Meteo, free)")
+    p.add_argument("city", nargs="?", help=tr("tên thành phố, ví dụ \"Hà Nội\"", "city name, for example \"London\""))
+    p.add_argument("--lat", type=float, help=tr("vĩ độ (thay cho tên)", "latitude (instead of a name)"))
+    p.add_argument("--lon", type=float, help=tr("kinh độ", "longitude"))
+    p.add_argument("--off", action="store_true", help=tr("bỏ thời tiết", "no weather"))
+    p = add("alerts", cmd_alerts, "cảnh báo: màn đỏ và tin Telegram khi nóng, đầy ổ, mất mạng, dịch vụ dừng",
+            "alerts: red screen and Telegram message on heat, full disk, no network, stopped services")
+    p.add_argument("state", nargs="?", choices=["on", "off"])
+    p.add_argument("--temp", type=int, help=tr("ngưỡng nhiệt độ CPU °C (0 = bỏ)", "CPU temperature limit °C (0 = off)"))
+    p.add_argument("--disk", type=int, help=tr("ngưỡng ổ đĩa %% (0 = bỏ)", "disk usage limit %% (0 = off)"))
+    p.add_argument("--network", choices=["on", "off"], help=tr("báo khi mất mạng", "alert when the network is lost"))
+    p.add_argument("--services", help=tr("dịch vụ cần theo dõi, cách nhau dấu phẩy (\"\" để bỏ)",
+                                         "services to watch, comma separated (\"\" for none)"))
+    p.add_argument("--test", action="store_true", help=tr("hiện cảnh báo thử", "show a test alert"))
+    p = add("telegram", cmd_telegram, "gửi cảnh báo qua bot Telegram của bạn", "send the alerts through your Telegram bot")
+    p.add_argument("--token", action="store_true", help=tr("kết nối bot (hỏi mã bot)", "connect a bot (asks for its token)"))
+    p.add_argument("--test", action="store_true", help=tr("gửi tin thử", "send a test message"))
+    p.add_argument("--off", action="store_true", help=tr("gỡ bot", "remove the bot"))
+    p = add("night", cmd_night, "hẹn giờ ban đêm: giảm sáng hoặc tắt màn", "night schedule: dim or turn off the screen")
+    p.add_argument("window", nargs="?", help=tr("giờ, ví dụ 22:00-06:00, hoặc off", "hours, for example 22:00-06:00, or off"))
+    p.add_argument("--dim", type=int, metavar="PERCENT", help=tr("giảm sáng còn %% này", "dim to this %%"))
+    p.add_argument("--screen-off", action="store_true", help=tr("tắt hẳn màn thay vì giảm sáng", "turn the screen off instead"))
+
     add("console", lambda a: cmd_mode(argparse.Namespace(mode="console")),
         "màn hình chính = dòng lệnh tty3 (Linux: dùng máy không cần HDMI, cần bàn phím USB)",
         "main screen = console tty3 (Linux: use the computer without HDMI, with a USB keyboard)")
