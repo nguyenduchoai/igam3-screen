@@ -74,6 +74,12 @@ def die(msg):
     sys.exit(1)
 
 
+def display_name(settings=None):
+    """Name shown on the screens and the web panel ("igam3-screen name"); the default title until one is set"""
+    settings = settings if settings is not None else load_settings()
+    return str(settings.get("name") or "").strip() or theme_generator().DEFAULT_TITLE
+
+
 def mode_name(mode):
     return tr(*MODES.get(mode, (mode, mode)))
 
@@ -199,7 +205,7 @@ def load_theme_custom():
 
 
 def save_theme_custom(custom):
-    save_yaml_dict(THEME_CUSTOM, custom, "# iGam3 theme settings. Change with: igam3-screen title / background / blocks\n")
+    save_yaml_dict(THEME_CUSTOM, custom, "# Dashboard settings. Change with: igam3-screen title / background / blocks\n")
     make_theme = theme_generator()
     layout = make_theme.compute_layout(custom["blocks"])
     make_theme.draw_background(custom, layout, i18n.LANG)
@@ -506,6 +512,7 @@ def status_dict():
     telegram = screen_events.Telegram(TELEGRAM).config()
     telegram_saved = screen_events.Telegram(TELEGRAM).saved()
     return {
+        "name": display_name(settings),
         "platform": "windows" if WINDOWS else "linux",
         "language": i18n.LANG,
         "language_setting": i18n.language_setting(),
@@ -544,7 +551,7 @@ def web_listening():
 
 def qr_screen_state():
     """What the QR screen shows: (ip, web panel open to the network, title); redraw when it changes"""
-    return primary_ipv4(), WEB.state() == "active", load_theme_custom()["title"] or "iGam3 M1"
+    return primary_ipv4(), WEB.state() == "active", display_name()
 
 
 def qr_screen_image(state):
@@ -699,8 +706,8 @@ def connect_telegram(token="", chat_id=None):
         raise
     save_telegram({"token": token, "chat_id": chat, "bot": bot, "chat_name": chat_name})
     screen_events.Telegram.call(token, "sendMessage", chat_id=chat, text=tr(
-        f"✅ igam3-screen trên {socket.gethostname()} đã kết nối. Cảnh báo sẽ được gửi vào đây.",
-        f"✅ igam3-screen on {socket.gethostname()} is connected. Alerts will be sent here."))
+        f"✅ Màn hình của {display_name()} ({socket.gethostname()}) đã kết nối. Cảnh báo sẽ được gửi vào đây.",
+        f"✅ The screen of {display_name()} ({socket.gethostname()}) is connected. Alerts will be sent here."))
     return tr(f"Đã kết nối bot @{bot}, gửi vào: {chat_name}. Vừa gửi một tin thử.",
               f"Bot @{bot} connected, sending to: {chat_name}. A test message was sent.")
 
@@ -730,7 +737,8 @@ def cmd_telegram(args):
             die(tr("chưa kết nối: igam3-screen telegram --token", "not connected: igam3-screen telegram --token"))
         try:
             telegram.call(config["token"], "sendMessage", chat_id=config["chat_id"],
-                          text=tr(f"🔔 Tin thử từ igam3-screen ({socket.gethostname()})", f"🔔 Test from igam3-screen ({socket.gethostname()})"))
+                          text=tr(f"🔔 Tin thử từ màn hình của {display_name()} ({socket.gethostname()})",
+                                  f"🔔 Test from the screen of {display_name()} ({socket.gethostname()})"))
         except (OSError, ValueError) as e:
             die(tr(f"không gửi được: {e}", f"cannot send: {e}"))
         print(tr("Đã gửi tin thử.", "Test message sent."))
@@ -780,6 +788,25 @@ def cmd_night(args):
     if not cfg["enabled"]:
         print(tr("Bật: igam3-screen night 22:00-06:00 --dim 10   (hoặc --screen-off)",
                  "Turn on: igam3-screen night 22:00-06:00 --dim 10   (or --screen-off)"))
+
+
+def cmd_name(args):
+    """Name shown on the screens (dashboard title, Vietnam Theme, QR code, alerts) and on the web panel"""
+    settings = load_settings()
+    if args.name is None:
+        print(tr("Tên hiển thị: ", "Display name: ") + display_name(settings))
+        print(tr('Đổi: igam3-screen name "Tên của bạn"', 'Change: igam3-screen name "Your name"'))
+        return
+    old = display_name(settings)
+    settings["name"] = args.name.strip()
+    save_settings(settings)
+    new = display_name(settings)
+    custom = load_theme_custom()
+    if custom["title"] in ("", old):  # the dashboard title followed the name: keep it that way
+        custom["title"] = new
+        save_theme_custom(custom)
+    print(tr("Tên hiển thị: ", "Display name: ") + new)
+    restart_if_running()
 
 
 def theme_logo(settings):
@@ -845,6 +872,7 @@ def cmd_status(args):
     lines.append((tr("Độ sáng", "Brightness"), f"{st['brightness']}%   {tr('Xoay 180°', 'Rotated 180°')}: "
                   f"{yes_no(st['reverse'])}"))
     lines.append((tr("Ngôn ngữ", "Language"), language))
+    lines.append((tr("Tên hiển thị", "Display name"), st["name"]))
     lines.append((tr("Thời tiết", "Weather"), st["weather"].get("name") or tr("chưa đặt (igam3-screen weather ...)",
                                                                              "not set (igam3-screen weather ...)")))
     alerts = alerts_summary(st["alerts"])
@@ -1404,7 +1432,8 @@ def follow_active_network(config_data):
 
 def start_monitor(control, settings):
     """Alerts, night schedule: a thread next to whatever main screen runs"""
-    host = f"{load_theme_custom()['title'] or 'iGam3'} · {socket.gethostname()}"
+    name = display_name()
+    host = name if name == socket.gethostname() else f"{name} · {socket.gethostname()}"
     screen_events.Monitor(control, settings, screen_events.Telegram(TELEGRAM), RUNTIME, host).start()
 
 
@@ -1450,7 +1479,7 @@ def cmd_run(_):
         control.attach(lcd)
         print(tr("Màn chính: Vietnam Theme", "Main screen: Vietnam Theme"), flush=True)
         run_vietnam(lcd, stop, lambda: settings_cache().get("weather") or None, RUNTIME / "weather.json", theme_logo(settings),
-                    active_interface, primary_ipv4, control)
+                    active_interface, primary_ipv4, control, display_name(settings))
         screen_events.finish(lcd, control)
         return
     elif settings["mode"] == "console" and not WINDOWS:
@@ -1548,6 +1577,8 @@ def main():
     add("vietnam", lambda a: cmd_mode(argparse.Namespace(mode="vietnam")),
         "màn hình chính = Vietnam Theme (sơn mài, trống đồng, lịch âm, pha trăng, thời tiết, thông số)",
         "main screen = Vietnam Theme (lacquer, bronze drum, lunar calendar, moon phase, weather, system values)")
+    p = add("name", cmd_name, "tên hiển thị trên màn hình và giao diện web", "name shown on the screens and the web panel")
+    p.add_argument("name", nargs="?", help=tr('ví dụ "Nguyễn Văn A" ("" = mặc định)', 'for example "Jane Doe" ("" = the default)'))
     p = add("logo", cmd_logo, "logo nhỏ ở góc Vietnam Theme", "small logo in the corner of the Vietnam Theme")
     p.add_argument("file", nargs="?", help=tr("ảnh logo (PNG nền trong suốt là đẹp nhất)", "logo picture (best: PNG with a transparent background)"))
     p.add_argument("--none", action="store_true", help=tr("bỏ logo", "no logo"))
@@ -1581,9 +1612,9 @@ def main():
         "main screen = console tty3 (Linux: use the computer without HDMI, with a USB keyboard)")
     p = add("title", cmd_title, "đổi chữ tiêu đề trên bảng thông số (theme iGam3)",
             "change the dashboard title (iGam3 theme)")
-    p.add_argument("title", help=tr('chữ lớn, ví dụ "iGam3 M1"', 'big text, for example "iGam3 M1"'))
-    p.add_argument("tag", nargs="?", help=tr('nhãn bên cạnh, ví dụ "DePIN NODE" ("" để bỏ nhãn)',
-                                             'tag next to it, for example "DePIN NODE" ("" for none)'))
+    p.add_argument("title", help=tr('chữ lớn, ví dụ "Nguyễn Văn A"', 'big text, for example "Jane Doe"'))
+    p.add_argument("tag", nargs="?", help=tr('nhãn bên cạnh, ví dụ "Bizino.AI" ("" để bỏ nhãn)',
+                                             'tag next to it, for example "Bizino.AI" ("" for none)'))
     p = add("background", cmd_background, "đặt ảnh nền cho bảng thông số (theme iGam3)",
             "set the dashboard background picture (iGam3 theme)")
     p.add_argument("file", nargs="?", help=tr("ảnh nền (PNG/JPG)", "background picture (PNG/JPG)"))

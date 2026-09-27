@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>iGam3 Screen</title>
+<title>{{name}}</title>
 <style>
   :root {
     --bg: #0b0f1a; --card: #121a2b; --card2: #0f1624; --border: #22304a; --text: #e5e7eb; --sub: #94a3b8;
@@ -107,7 +107,7 @@
 </head>
 <body>
 <header>
-  <h1>iGam3 Screen <small id="subtitle" data-t="subtitle"></small></h1>
+  <h1>{{name}} <small id="subtitle" data-t="subtitle"></small></h1>
   <div class="head-right">
     <select id="language" class="compact" aria-label="Language / Ngôn ngữ">
       <option value="auto" data-t="langAuto"></option>
@@ -149,6 +149,11 @@
     <p class="hint warn" id="consoleWarn" hidden></p>
 
     <h3 data-t="display"></h3>
+    <label class="field" for="displayName" data-t="displayName"></label>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="displayName" maxlength="60">
+      <button class="btn ghost" id="saveName" data-t="save"></button>
+    </div>
     <label class="field" for="brightness"><span data-t="brightness"></span>: <b id="brightnessValue"></b>%</label>
     <input type="range" id="brightness" min="0" max="100" step="5">
     <div class="row">
@@ -298,8 +303,8 @@
 
   <section class="card">
     <h2 data-t="splashHead"></h2>
-    <label class="field" for="sTitle" data-t="sTitle"></label><input type="text" id="sTitle" value="iGam3 M1" maxlength="80">
-    <label class="field" for="sSub" data-t="sSub"></label><input type="text" id="sSub" value="DePIN Edge AI Node" maxlength="100">
+    <label class="field" for="sTitle" data-t="sTitle"></label><input type="text" id="sTitle" value="{{name}}" maxlength="80">
+    <label class="field" for="sSub" data-t="sSub"></label><input type="text" id="sSub" value="{{tag}}" maxlength="100">
     <label class="field" for="sFooter" data-t="sFooter"></label><input type="text" id="sFooter" maxlength="100">
     <label class="field" for="logoFile" data-t="logo"></label>
     <div class="picker"><input type="file" id="logoFile" accept="image/*"><label class="btn ghost" for="logoFile" data-t="choose"></label><span class="fname" data-t="noFile"></span></div>
@@ -339,7 +344,8 @@ const TEXT = {
   running: ["Đang chạy", "Running"],
   stopped: ["Đã tắt", "Off"],
   disconnected: ["Mất kết nối", "Disconnected"],
-  subtitle: ['Màn hình 3.5" của máy iGam3', 'The 3.5" screen of the iGam3'],
+  subtitle: ['Màn hình 3.5"', 'The 3.5" screen'],
+  displayName: ["Tên hiển thị (trên màn hình và trang này)", "Display name (on the screens and this page)"],
   subtitleLive: ['Màn hình 3.5" · {0}', '3.5" screen · {0}'],
   langAuto: ["Tự động (theo máy)", "Automatic (system)"],
   nowTitle: ["Màn hình nhỏ lúc này", "The small screen right now"],
@@ -375,8 +381,9 @@ const TEXT = {
   landscape: ["ngang", "landscape"],
   portrait: ["dọc", "portrait"],
   dashTitle: ["Bảng thông số", "Dashboard"],
-  themeWarn: ["Các tuỳ chỉnh dưới đây dành cho theme iGam3.", "The settings below are for the iGam3 theme."],
-  useIgam3: ["Dùng theme iGam3", "Use the iGam3 theme"],
+  themeWarn: ["Các tuỳ chỉnh dưới đây dành cho theme mặc định (Bảng thông số).", "The settings below are for the default theme (Dashboard)."],
+  useIgam3: ["Dùng theme mặc định", "Use the default theme"],
+  defaultTheme: ["Mặc định (Bảng thông số)", "Default (Dashboard)"],
   blocks: ["Các khối", "Blocks"],
   titleHead: ["Tiêu đề", "Title"],
   bigText: ["Chữ lớn (góc trên trái)", "Big text (top left)"],
@@ -501,8 +508,8 @@ const TEXT = {
   noMatch: ["Không có theme nào khớp.", "No theme matches."],
   moreThemes: ["Xem thêm ({0})", "Show more ({0})"],
   installing: ["Đang tải {0} từ bài đăng của tác giả…", "Downloading {0} from its author's post…"],
-  installedHint: ["Bấm Dùng để đổi theme ngay. Riêng theme iGam3 chỉnh được tiêu đề, các khối và ảnh nền ở mục Bảng thông số.",
-                  "Use switches the theme right away. The iGam3 theme can also be customised under Dashboard."],
+  installedHint: ["Bấm Dùng để đổi theme ngay. Riêng theme mặc định chỉnh được tiêu đề, các khối và ảnh nền ở mục Bảng thông số.",
+                  "Use switches the theme right away. The default theme can also be customised under Dashboard."],
   storeHint: ["Theme do cộng đồng chia sẻ trong mục <a href=\"https://github.com/mathoudebine/turing-smart-screen-python/discussions/categories/themes\" target=\"_blank\" rel=\"noopener\">Themes</a> của turing-smart-screen-python, đã chạy thử với màn 3.5\". Tải & dùng: máy tải theme từ bài đăng của tác giả rồi hiện luôn. Ô GPU đọc được card NVIDIA, AMD, và trên Linux cả đồ hoạ Intel onboard.",
               "Themes shared by the community in the <a href=\"https://github.com/mathoudebine/turing-smart-screen-python/discussions/categories/themes\" target=\"_blank\" rel=\"noopener\">Themes</a> discussions of turing-smart-screen-python, tested on the 3.5\" screen. Get & use downloads the theme from its author's post and shows it. GPU fields work with NVIDIA and AMD cards, and on Linux with Intel integrated graphics."],
 };
@@ -513,6 +520,7 @@ function t(key, ...args) {
   return text;
 }
 const esc = (text) => String(text).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+const themeLabel = (name) => (name === "iGam3" ? t("defaultTheme") : name);  // the built-in dashboard theme
 
 document.querySelectorAll("[data-t]").forEach((el) => (el.textContent = t(el.dataset.t)));
 document.querySelectorAll("[data-t-html]").forEach((el) => (el.innerHTML = t(el.dataset.tHtml)));
@@ -582,7 +590,7 @@ function render(s) {
   const sel = $("theme");
   if (sel.options.length !== s.themes.length) {
     sel.innerHTML = "";
-    s.themes.forEach((th) => sel.add(new Option(`${th.name} (${t(th.orientation === "landscape" ? "landscape" : "portrait")})`, th.name)));
+    s.themes.forEach((th) => sel.add(new Option(`${themeLabel(th.name)} (${t(th.orientation === "landscape" ? "landscape" : "portrait")})`, th.name)));
   }
   if (document.activeElement !== sel) sel.value = s.theme;
   $("themeWarn").hidden = s.theme === "iGam3";
@@ -597,7 +605,7 @@ function render(s) {
     box.querySelectorAll("input").forEach((i) => i.addEventListener("change", () => action({ action: "blocks", blocks: { [i.dataset.block]: i.checked } })));
   }
   s.blocks.forEach((b) => { box.querySelector(`[data-block="${b.key}"]`).checked = b.on; });
-  if (!textsLoaded) { $("title").value = s.title; $("tag").value = s.tag; textsLoaded = true; }
+  if (!textsLoaded) { $("title").value = s.title; $("tag").value = s.tag; $("displayName").value = s.name || ""; textsLoaded = true; }
   $("bgHint").textContent = t(s.background ? "bgOwn" : "bgDefault");
   $("lanHint").innerHTML = s.web.lan ? t("lanOn", esc(`http://${s.ip}:${s.web.port}`)) : t("lanOff");
   renderSettings(s);
@@ -656,6 +664,9 @@ $("rotate").addEventListener("change", (e) => action({ action: "rotate", on: e.t
 $("applyTheme").addEventListener("click", () => action({ action: "theme", name: $("theme").value }));
 $("useIgam3").addEventListener("click", () => action({ action: "theme", name: "iGam3" }));
 $("saveTitle").addEventListener("click", () => action({ action: "title", title: $("title").value, tag: $("tag").value }));
+$("saveName").addEventListener("click", async () => {
+  if (await action({ action: "name", name: $("displayName").value.trim() })) setTimeout(() => location.reload(), 800);
+});
 $("setBg").addEventListener("click", async () => { if (await upload("background", $("bgFile"))) action({ action: "background" }); });
 $("removeBg").addEventListener("click", () => action({ action: "background", remove: true }));
 $("keepImage").addEventListener("click", async () => { if (await upload("image", $("imageFile"))) action({ action: "image", fill: $("fill").checked }); });
@@ -744,7 +755,7 @@ function themeCard(item, installed) {
     const img = document.createElement("img");
     img.loading = "lazy";
     img.referrerPolicy = "no-referrer";
-    img.alt = item.name;
+    img.alt = themeLabel(item.name);
     img.src = src;
     img.onerror = () => { thumb.textContent = t("noPreview"); };
     thumb.appendChild(img);
@@ -754,8 +765,8 @@ function themeCard(item, installed) {
   card.appendChild(thumb);
   const name = document.createElement("div");
   name.className = "tname";
-  name.title = item.name;
-  name.textContent = item.name;
+  name.title = themeLabel(item.name);
+  name.textContent = themeLabel(item.name);
   if (installed && item.community) {
     const badge = document.createElement("span");
     badge.className = "badge";

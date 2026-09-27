@@ -160,8 +160,8 @@ def render(now, place, forecast, age):
                    fill=AMBER, anchor="lm")
     else:
         img.paste(ic := icon("cloud", 50), (x0, 46), ic)
-        lines = [tr("Chưa đặt thành phố", "No city set yet"), tr("igam3-screen weather", "igam3-screen weather"),
-                 tr("\"<tên thành phố>\"", "\"<city name>\"")] if not place else [tr("Đang lấy thời tiết…", "Getting the weather…")]
+        lines = [tr("Chưa đặt thành phố:", "No city set yet:"), tr("đặt ở trang quản lý", "set it in the web panel")] \
+            if not place else [tr("Đang lấy thời tiết…", "Getting the weather…")]
         for i, line in enumerate(lines):
             d.text((x0, 112 + i * 18), line, font=fit(d, line, ROBOTO, 13, W - 12 - x0), fill=SUB, anchor="lm")
     d.line([(12, 168), (W - 12, 168)], fill=BORDER, width=1)

@@ -2,7 +2,7 @@
 
 **English** · [Tiếng Việt](README.vi.md)
 
-Manager for the **3.5" screen built into the iGam3 M1** (DePIN / Edge AI node) on **Ubuntu**, with an experimental
+Manager for the **3.5" screen built into the iGam3 M1** (Edge AI node) on **Ubuntu**, with an experimental
 **Windows** version: system dashboard, fixed picture, QR code or text console, plus a web control panel that also works
 from a phone.
 
@@ -17,6 +17,8 @@ management tools and installers made for the iGam3.
 - **Dashboard**: CPU (%, temperature, clock speed), RAM, SSD, Wi-Fi/LAN speed, IP address, uptime, ping, date and time.
   **Turn each block on or off** and the layout rearranges itself; change the **title**, **tag** and **background
   picture**; 38 other 3.5" themes are included.
+- **Your name on every screen**: dashboard, Vietnam Theme, alerts, QR code and web panel. By default **Hoài Nguyễn**,
+  with the tag **Bizino.AI**.
 - **Theme gallery**: the 39 bundled themes, plus **85 community themes** tested on this screen that install with one
   click from their authors' posts.
 - **Vietnam Theme**: red lacquer and gold with Đông Sơn bronze drum patterns, solar and lunar calendars, a Swiss-watch
@@ -65,11 +67,11 @@ A line with `QinHeng Electronics UsbMonitor` means it does.
    [Releases](https://github.com/nguyenduchoai/igam3-screen/releases) page.
 2. Open a terminal as your **normal user** (do not type `sudo`) and run:
    ```bash
-   bash igam3-screen-installer-1.5.0.run
+   bash igam3-screen-installer-1.6.0.run
    ```
    You can set the title and the language right away:
    ```bash
-   bash igam3-screen-installer-1.5.0.run --title "My node" --tag "DePIN NODE" --lang en
+   bash igam3-screen-installer-1.6.0.run --title "My node" --tag "Edge AI" --lang en
    ```
 3. Type your sudo password when asked. About 10 seconds later the small screen shows the dashboard.
 
@@ -166,7 +168,7 @@ main screen. Drawing the whole screen takes about 2 seconds, so animated GIFs pl
 ### Dashboard
 
 ```bash
-igam3-screen title "My node" "DePIN NODE"   # big text + tag ("" for no tag)
+igam3-screen title "My node" "Edge AI"      # big text + tag ("" for no tag); default: Hoài Nguyễn, Bizino.AI
 igam3-screen blocks ssd=off network=off     # blocks: clock hostname cpu ram ssd network system
 igam3-screen background ~/Pictures/bg.jpg   # background picture; --none removes it
 igam3-screen themes                         # 38 other 3.5" themes
@@ -176,6 +178,16 @@ igam3-screen rotate                         # rotate 180°
 ```
 
 With every data block off and the clock on, the screen becomes a big clock.
+
+### Name on the screens
+
+```bash
+igam3-screen name "Jane Doe"     # "" goes back to the default, Hoài Nguyễn
+```
+
+The name shows at the bottom of the Vietnam Theme, at the top of the alert and QR code screens and of the web panel,
+and as the dashboard title while that title has not been changed separately. In the web panel: **Main screen >
+Display name**. The splash picture form starts with this name and the dashboard tag.
 
 ### Theme gallery and community themes
 
@@ -210,7 +222,7 @@ Good to know:
 ### Splash picture
 
 ```bash
-igam3-screen splash "Your Company" "DePIN node" "www.example.com" --logo ~/Pictures/logo.png --keep
+igam3-screen splash "Your Company" "Bizino.AI" "www.example.com" --logo ~/Pictures/logo.png --keep
 ```
 
 Long text shrinks or wraps onto two lines by itself. Add `--photo photo.jpg` for a photo background.
@@ -336,6 +348,7 @@ lights up once the service runs (10–15 seconds after power on). Two ways to us
 | `igam3-screen panel` | open the web panel |
 | `igam3-screen web --password` / `--lan on\|off` | password, open / close the panel to the local network |
 | `igam3-screen language en\|vi\|auto` | language |
+| `igam3-screen name "<name>"` | name on the screens and the web panel |
 | `igam3-screen weather "<city>"` | city of the weather on the clock screen |
 | `igam3-screen alerts` / `telegram --token` | alerts, Telegram bot |
 | `igam3-screen night 22:00-06:00 --dim 10` | night schedule |
@@ -390,8 +403,8 @@ Until your next login after installing, the `igam3-screen` command is not in the
 | `install-windows.cmd`, `install-windows.ps1`, `uninstall-windows.ps1` | install / uninstall on Windows |
 | `packaging/` | builds the installers |
 
-Each computer creates these files for itself (not in git): `settings.yaml` (main screen, language, weather, alerts,
-night), `web.yaml` (password), `telegram.yaml` (bot), `images/`, `app/config.yaml` (modified),
+Each computer creates these files for itself (not in git): `settings.yaml` (main screen, language, display name,
+weather, alerts, night), `web.yaml` (password), `telegram.yaml` (bot), `images/`, `app/config.yaml` (modified),
 `app/res/themes/iGam3/custom.yaml`.
 
 ## Building a release
@@ -404,7 +417,7 @@ bash packaging/build.sh
 
 This makes `dist/igam3-screen-installer-<VERSION>.run` (Linux, libraries included) and
 `dist/igam3-screen-windows-<VERSION>.zip`. Publish both as a GitHub release, for example with the
-[GitHub CLI](https://cli.github.com/): `gh release create v1.5.0 dist/*`.
+[GitHub CLI](https://cli.github.com/): `gh release create v1.6.0 dist/*`.
 
 ## License and credits
 

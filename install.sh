@@ -26,8 +26,8 @@ usage() {
     if (( VI )); then
         cat <<'EOF'
 Cách dùng: bash igam3-screen-installer-*.run [tuỳ chọn]    (hoặc từ mã nguồn: bash install.sh [tuỳ chọn])
-  --title "Chữ lớn"   chữ tiêu đề trên bảng thông số (mặc định: iGam3 M1)
-  --tag "NHÃN"        nhãn bên cạnh tiêu đề (mặc định: DePIN NODE)
+  --title "Chữ lớn"   chữ tiêu đề trên bảng thông số (mặc định: Hoài Nguyễn)
+  --tag "NHÃN"        nhãn bên cạnh tiêu đề (mặc định: Bizino.AI)
   --lang vi|en        ngôn ngữ (mặc định: theo ngôn ngữ của máy)
   --dir THƯ_MỤC       nơi cài (mặc định: ~/igam3-screen)
   --skip-root         không chạy bước cần sudo (quyền màn hình, tự chạy khi khởi động)
@@ -36,8 +36,8 @@ EOF
     else
         cat <<'EOF'
 Usage: bash igam3-screen-installer-*.run [options]    (or from the source code: bash install.sh [options])
-  --title "Big text"  title of the dashboard (default: iGam3 M1)
-  --tag "TAG"         tag next to the title (default: DePIN NODE)
+  --title "Big text"  title of the dashboard (default: Hoài Nguyễn)
+  --tag "TAG"         tag next to the title (default: Bizino.AI)
   --lang vi|en        language (default: the language of the system)
   --dir FOLDER        where to install (default: ~/igam3-screen)
   --skip-root         skip the step that needs sudo (screen permission, start at boot)

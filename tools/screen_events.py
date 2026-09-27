@@ -323,7 +323,7 @@ def alert_image(alerts, host, now=None):
         d.ellipse([22, y - 5, 32, y + 5], fill=(254, 242, 242))
         d.text((42, y), alert, font=fit(d, alert, "roboto/Roboto-Medium.ttf", 19, W - 60, 12), fill=(255, 255, 255), anchor="lm")
         y += 36
-    footer = tr(f"{now:%H:%M} · Chi tiết: igam3-screen alerts", f"{now:%H:%M} · Details: igam3-screen alerts")
+    footer = tr(f"{now:%H:%M} · Xem chi tiết ở trang quản lý", f"{now:%H:%M} · Details in the web panel")
     d.text((20, H - 20), footer, font=font("roboto/Roboto-Regular.ttf", 13), fill=(254, 202, 202), anchor="lm")
     return img
 
@@ -412,7 +412,7 @@ class Monitor(threading.Thread):
                 if test.exists():  # "igam3-screen alerts --test" or the web panel
                     test.unlink(missing_ok=True)
                     self.test_until = now + SHOW_S
-                    self.telegram.send(tr(f"🔔 {self.host}: cảnh báo thử của igam3-screen", f"🔔 {self.host}: igam3-screen test alert"))
+                    self.telegram.send(tr(f"🔔 {self.host}: cảnh báo thử", f"🔔 {self.host}: test alert"))
                     refresh = True
                 if self.test_until and now >= self.test_until:
                     self.test_until = 0.0

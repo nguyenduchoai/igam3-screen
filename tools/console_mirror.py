@@ -23,7 +23,6 @@ CELL_W, CELL_H = 8, 16
 COLS, ROWS = 60, 19  # 480 x 304 px of console + a 16 px status row at the bottom
 SCREEN_W = COLS * CELL_W
 FONTS = Path(__file__).resolve().parent.parent / "app" / "res" / "fonts"
-SETUP_ROOT = str(Path(__file__).resolve().parent.parent / "setup-root.sh").replace(str(Path.home()), "~", 1)
 
 # Linux console colours, in the VGA order used by the attribute bytes of /dev/vcsa
 PALETTE = [(0, 0, 0), (0, 0, 170), (0, 170, 0), (0, 170, 170), (170, 0, 0), (170, 0, 170), (170, 85, 0),
@@ -218,7 +217,7 @@ def run_console(lcd, stop, primary_ipv4, web_qr=None, control=None):
         except ConsoleUnavailable as e:
             if str(e) == "permission":
                 renderer.show_message([tr("Chưa có quyền đọc dòng lệnh", "No permission to read the console"),
-                                       tr("Chạy một lần: ", "Run once: ") + f"sudo {SETUP_ROOT}",
+                                       tr("Chạy một lần: sudo setup-root.sh", "Run once: sudo setup-root.sh"),
                                        tr("rồi khởi động lại máy", "then restart the computer")])
             else:
                 renderer.show_message(how_to(qr is not None), qr)

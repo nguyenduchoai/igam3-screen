@@ -2,7 +2,7 @@
 
 [English](README.md) · **Tiếng Việt**
 
-Quản lý **màn hình 3.5" gắn trên máy iGam3 M1** (DePIN / Edge AI node) khi cài **Ubuntu**, và thử nghiệm trên **Windows**:
+Quản lý **màn hình 3.5" gắn trên máy iGam3 M1** (Edge AI node) khi cài **Ubuntu**, và thử nghiệm trên **Windows**:
 bảng thông số máy, ảnh cố định, mã QR, dòng lệnh, cùng giao diện quản lý trên trình duyệt (dùng được cả từ điện thoại).
 
 <p align="center"><img src="docs/vi/dashboard.png" width="480" alt="Bảng thông số trên màn 3.5 inch"></p>
@@ -15,6 +15,8 @@ rồi thêm theme, công cụ quản lý và bộ cài riêng cho iGam3.
 
 - **Bảng thông số**: CPU (%, nhiệt độ, xung), RAM, SSD, tốc độ Wi-Fi/LAN, IP, thời gian chạy, ping, ngày giờ.
   **Bật/tắt từng khối**, bố cục tự dàn lại; đổi **tiêu đề**, **nhãn**, **ảnh nền**; kèm 38 theme 3.5" khác có sẵn.
+- **Tên của bạn trên mọi màn**: bảng thông số, Vietnam Theme, cảnh báo, mã QR và giao diện web. Mặc định là
+  **Hoài Nguyễn**, nhãn **Bizino.AI**.
 - **Thư viện theme**: 39 theme có sẵn, cộng **85 theme của cộng đồng** đã chạy thử với màn này, bấm một nút là tải về
   từ bài đăng của tác giả và dùng luôn.
 - **Vietnam Theme**: nền sơn mài đỏ son và vàng kim với hoa văn trống đồng Đông Sơn, lịch dương và lịch âm, pha Mặt
@@ -62,11 +64,11 @@ Kết quả có dòng `QinHeng Electronics UsbMonitor` là đúng.
 1. Vào trang [Releases](https://github.com/nguyenduchoai/igam3-screen/releases), tải file `igam3-screen-installer-<phiên bản>.run`.
 2. Mở Terminal bằng **tài khoản thường** (không gõ `sudo`) và chạy:
    ```bash
-   bash igam3-screen-installer-1.5.0.run
+   bash igam3-screen-installer-1.6.0.run
    ```
    Có thể đặt sẵn tiêu đề và ngôn ngữ:
    ```bash
-   bash igam3-screen-installer-1.5.0.run --title "Tên máy" --tag "DePIN NODE" --lang vi
+   bash igam3-screen-installer-1.6.0.run --title "Tên máy" --tag "Edge AI" --lang vi
    ```
 3. Nhập mật khẩu sudo khi được hỏi. Khoảng 10 giây sau, màn nhỏ hiện bảng thông số.
 
@@ -159,7 +161,7 @@ Mỗi lần vẽ kín màn mất khoảng 2 giây, nên GIF động chạy chậ
 ### Bảng thông số
 
 ```bash
-igam3-screen title "Tên máy" "DePIN NODE"   # chữ lớn + nhãn ("" để bỏ nhãn)
+igam3-screen title "Tên máy" "Edge AI"      # chữ lớn + nhãn ("" để bỏ nhãn); mặc định: Hoài Nguyễn, Bizino.AI
 igam3-screen blocks ssd=off network=off     # tắt khối; các khối: clock hostname cpu ram ssd network system
 igam3-screen background ~/Ảnh/nen.jpg       # ảnh nền; --none để bỏ
 igam3-screen themes                         # 38 theme 3.5" khác
@@ -169,6 +171,16 @@ igam3-screen rotate                         # xoay 180°
 ```
 
 Tắt hết các ô số liệu mà vẫn bật Đồng hồ thì màn thành đồng hồ lớn.
+
+### Tên hiển thị trên màn hình
+
+```bash
+igam3-screen name "Nguyễn Văn A"     # "" để quay về mặc định: Hoài Nguyễn
+```
+
+Tên hiện ở góc dưới Vietnam Theme, ở đầu màn cảnh báo, màn mã QR và giao diện web, và làm tiêu đề bảng thông số
+khi tiêu đề chưa được đổi riêng. Trên giao diện web: **Màn hình chính > Tên hiển thị**. Mục Ảnh giới thiệu cũng điền
+sẵn tên này và nhãn của bảng thông số.
 
 ### Thư viện theme và theme cộng đồng
 
@@ -203,7 +215,7 @@ Cần biết:
 ### Ảnh giới thiệu
 
 ```bash
-igam3-screen splash "Tên công ty" "Nút mạng DePIN" "www.tencongty.vn" --logo ~/Ảnh/logo.png --keep
+igam3-screen splash "Tên công ty" "Bizino.AI" "www.tencongty.vn" --logo ~/Ảnh/logo.png --keep
 ```
 
 Chữ quá dài sẽ tự thu nhỏ hoặc xuống 2 dòng. Thêm `--photo anh.jpg` để dùng ảnh làm nền.
@@ -326,6 +338,7 @@ khi dịch vụ đã chạy (khoảng 10–15 giây sau khi bật máy). Có hai
 | `igam3-screen panel` | mở giao diện quản lý |
 | `igam3-screen web --password` / `--lan on\|off` | mật khẩu, mở/đóng giao diện cho mạng LAN |
 | `igam3-screen language vi\|en\|auto` | ngôn ngữ |
+| `igam3-screen name "<tên>"` | tên hiển thị trên màn hình và giao diện web |
 | `igam3-screen weather "<thành phố>"` | thành phố của thời tiết trên màn đồng hồ |
 | `igam3-screen alerts` / `telegram --token` | cảnh báo, bot Telegram |
 | `igam3-screen night 22:00-06:00 --dim 10` | hẹn giờ ban đêm |
@@ -380,8 +393,8 @@ Trước lần đăng nhập đầu tiên sau khi cài, lệnh `igam3-screen` ch
 | `install-windows.cmd`, `install-windows.ps1`, `uninstall-windows.ps1` | cài / gỡ trên Windows |
 | `packaging/` | đóng gói bộ cài |
 
-Mỗi máy tự tạo các file riêng sau (không nằm trong git): `settings.yaml` (màn chính, ngôn ngữ, thời tiết, cảnh báo,
-ban đêm), `web.yaml` (mật khẩu), `telegram.yaml` (bot), `images/`, `app/config.yaml` (đã sửa),
+Mỗi máy tự tạo các file riêng sau (không nằm trong git): `settings.yaml` (màn chính, ngôn ngữ, tên hiển thị, thời tiết,
+cảnh báo, ban đêm), `web.yaml` (mật khẩu), `telegram.yaml` (bot), `images/`, `app/config.yaml` (đã sửa),
 `app/res/themes/iGam3/custom.yaml`.
 
 ## Đóng gói và phát hành
@@ -394,7 +407,7 @@ bash packaging/build.sh
 
 Lệnh này tạo `dist/igam3-screen-installer-<VERSION>.run` (Linux, kèm thư viện) và `dist/igam3-screen-windows-<VERSION>.zip`.
 Đưa hai file đó lên một bản phát hành trên GitHub (Releases), ví dụ bằng
-[GitHub CLI](https://cli.github.com/): `gh release create v1.5.0 dist/*`.
+[GitHub CLI](https://cli.github.com/): `gh release create v1.6.0 dist/*`.
 
 ## Giấy phép và ghi công
 

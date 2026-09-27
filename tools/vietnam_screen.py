@@ -258,8 +258,9 @@ class Stats:
 # ---------------------------------------------------------------- picture
 
 class VietnamScreen:
-    def __init__(self, logo=None):
+    def __init__(self, logo=None, name=""):
         self.logo = logo
+        self.name = name
         self._background = {}
         self._dials = {}
 
@@ -422,7 +423,8 @@ class VietnamScreen:
         footer = " · ".join(x for x in (f"IP {values['ip']}" if values["ip"] else tr("Không có mạng", "No network"),
                                         socket.gethostname()) if x)
         d.text((14, 305), footer, font=font(ROBOTO, 10), fill=MUTED, anchor="lm")
-        d.text((W - 14, 305), "igam3-screen · Vietnam Theme", font=font(ROBOTO, 9), fill=GOLD_DARK, anchor="rm")
+        if self.name:
+            d.text((W - 14, 305), self.name, font=fit(d, self.name, ROBOTO_MEDIUM, 11, 200), fill=GOLD, anchor="rm")
         return img.convert("RGB")
 
     @staticmethod
@@ -465,9 +467,9 @@ def changed_strips(frame, previous):
     return merged
 
 
-def run_vietnam(lcd, stop, place, cache_path, logo, active_interface, primary_ipv4, control=None):
+def run_vietnam(lcd, stop, place, cache_path, logo, active_interface, primary_ipv4, control=None, name=""):
     """Main screen loop: the whole picture first, then only what changed, every second"""
-    screen = VietnamScreen(logo)
+    screen = VietnamScreen(logo, name)
     stats = Stats(active_interface, primary_ipv4)
     forecasts = weather.Weather(Path(cache_path), place)
     shown = {"image": None}
@@ -488,9 +490,3 @@ def run_vietnam(lcd, stop, place, cache_path, logo, active_interface, primary_ip
                 lcd.DisplayPILImage(frame.crop(box), box[0], box[1])
         shown["image"] = frame
         stop.wait(1.02 - time.time() % 1)
-
-
-def preview(place, forecast, logo, active_interface, primary_ipv4):
-    """One picture of the screen with the current values (theme gallery of the web panel)"""
-    stats = Stats(active_interface, primary_ipv4)
-    return VietnamScreen(logo).render(datetime.datetime.now(), stats.values, place, forecast)

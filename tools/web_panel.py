@@ -8,6 +8,7 @@ import argparse
 import base64
 import hashlib
 import hmac
+import html
 import io
 import json
 import os
@@ -40,13 +41,14 @@ LANGUAGE_CHOICES = ("auto", "vi", "en")
 
 def no_password_page():
     return f"""<!doctype html><html lang="{i18n.LANG}"><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>iGam3 Screen</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>{html.escape(core.display_name())}</title>
 <body style="font-family:system-ui;background:#0b0f1a;color:#e5e7eb;padding:24px;line-height:1.6">
 <h2>{tr("Chưa đặt mật khẩu", "No password yet")}</h2>
 <p>{tr("Để mở giao diện từ điện thoại hoặc máy khác, cần đặt mật khẩu trước theo một trong hai cách:",
        "To open this panel from a phone or another computer, set a password first, in one of two ways:")}</p>
-<ul><li>{tr('Trên máy iGam3, mở <b>http://localhost:8686</b> và đặt mật khẩu ở mục "Truy cập từ điện thoại".',
-            'On the iGam3 itself, open <b>http://localhost:8686</b> and set it under "Access from a phone".')}</li>
+<ul><li>{tr('Trên chính máy có màn hình, mở <b>http://localhost:8686</b> '
+            'và đặt mật khẩu ở mục "Truy cập từ điện thoại".',
+            'On the computer with the screen, open <b>http://localhost:8686</b> and set it under "Access from a phone".')}</li>
 <li>{tr("Hoặc chạy lệnh:", "Or run:")} <code>igam3-screen web --password</code></li></ul></body></html>"""
 
 _verified = set()  # Authorization headers already accepted: PBKDF2 is slow, check each one only once
@@ -106,7 +108,7 @@ def vietnam_preview():
     stats = _vietnam["stats"]
     stats.read()
     forecast, _ = _vietnam["weather"].snapshot()
-    image = vietnam_screen.VietnamScreen(core.theme_logo(settings)).render(
+    image = vietnam_screen.VietnamScreen(core.theme_logo(settings), core.display_name(settings)).render(
         __import__("datetime").datetime.now(), stats.values, settings.get("weather") or None, forecast)
     out = io.BytesIO()
     image.save(out, "PNG")
@@ -179,6 +181,8 @@ def do_action(data):
         if data.get("night_action") == "off":
             return run_cli("night", window, "--screen-off")
         return run_cli("night", window, "--dim", str(int(data.get("brightness") or 0)))
+    if action == "name":
+        return run_cli("name", "--", text("name")[:60])
     if action == "theme_logo":
         if data.get("remove"):
             return run_cli("logo", "--none")
@@ -313,6 +317,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/":
             page = (WEB_DIR / "index.html").read_text(encoding="utf8")
             page = page.replace('<html lang="en">', f'<html lang="{i18n.LANG}">', 1)  # the page picks its texts from it
+            name, tag = html.escape(core.display_name()), html.escape(core.load_theme_custom()["tag"])
+            page = page.replace("{{name}}", name).replace("{{tag}}", tag)
             self.send_body(HTTPStatus.OK, page.encode(), "text/html; charset=utf-8")
         elif path == "/api/state":
             state = core.status_dict()

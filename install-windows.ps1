@@ -1,6 +1,6 @@
 ﻿# igam3-screen installer for Windows 10/11 (EXPERIMENTAL): 3.5" Turing Smart Screen / TURZX (USB 1a86:5722).
 # Double-click install-windows.cmd, or:
-#   powershell -ExecutionPolicy Bypass -File install-windows.ps1 [-Title "Name"] [-Tag "DePIN NODE"] [-Lang vi|en] [-Dir C:\...]
+#   powershell -ExecutionPolicy Bypass -File install-windows.ps1 [-Title "Name"] [-Tag "Bizino.AI"] [-Lang vi|en] [-Dir C:\...]
 # Running it again on an installed computer upgrades it: the settings, pictures and web password are kept.
 # Messages are in Vietnamese on Vietnamese Windows, in English otherwise (or: -Lang vi|en).
 param(

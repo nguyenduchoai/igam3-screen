@@ -84,18 +84,16 @@ def make_qr_screen(ip, port, lan_on, title):
     address = f"{ip}:{port}" if ip else tr("không có mạng", "no network")
     d.text((tx, 114), address, font=fit(d, address, "jetbrains-mono/JetBrainsMono-Bold.ttf", 14, tw),
            fill=CYAN, anchor="lt")
-    regular, mono = "roboto/Roboto-Regular.ttf", "jetbrains-mono/JetBrainsMono-Regular.ttf"
     if url and lan_on:
-        lines, color = [(tr("Đăng nhập: tên bất kỳ", "Sign in: any user name"), regular),
-                        (tr("và mật khẩu của bạn", "and your password"), regular)], TEXT
+        lines, color = [tr("Đăng nhập: tên bất kỳ", "Sign in: any user name"),
+                        tr("và mật khẩu của bạn", "and your password")], TEXT
     elif url:
-        lines, color = [(tr("Chưa mở cho điện thoại:", "Not open to phones yet:"), regular),
-                        ("igam3-screen web --lan on", mono)], WARN
+        lines, color = [tr("Chưa mở cho điện thoại:", "Not open to phones yet:"),
+                        tr("mở mạng LAN trên máy", "open the LAN on the computer")], WARN
     else:
-        lines, color = [(tr("Kiểm tra Wi-Fi hoặc", "Check the Wi-Fi"), regular),
-                        (tr("cáp mạng LAN", "or the network cable"), regular)], WARN
-    for i, (line, name) in enumerate(lines):
-        d.text((tx, 142 + i * 17), line, font=fit(d, line, name, 12, tw), fill=color, anchor="lt")
+        lines, color = [tr("Kiểm tra Wi-Fi hoặc", "Check the Wi-Fi"), tr("cáp mạng LAN", "or the network cable")], WARN
+    for i, line in enumerate(lines):
+        d.text((tx, 142 + i * 17), line, font=fit(d, line, "roboto/Roboto-Regular.ttf", 12, tw), fill=color, anchor="lt")
 
     d.text((tx, 192), tr("PHÍM TẮT", "SHORTCUTS"), font=font("roboto/Roboto-Bold.ttf", 10), fill=MUTED, anchor="lt")
     key_font, desc_font = font("jetbrains-mono/JetBrainsMono-Bold.ttf", 11), font("roboto/Roboto-Regular.ttf", 12)
